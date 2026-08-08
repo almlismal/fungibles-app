@@ -1024,10 +1024,10 @@ function renderUserList(){
   }
   box.innerHTML = usuariosConocidos.map(nombre => `
     <button type="button" class="user-option" data-nombre="${nombre}"
-      style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;cursor:pointer;-webkit-touch-callout:none">
+      style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s ease, background 0.15s ease">
       ${nombre}
     </button>
-  `).join('') + '<div style="width:100%;font-size: 14px;color:var(--text-dim);margin-top:6px">Mantén pulsado un nombre para eliminarlo</div>';
+  `).join('') + '<div style="width:100%;font-size: 14px;color:var(--text-dim);margin-top:6px">Mantén pulsado un nombre para editarlo o eliminarlo</div>';
 }
 
 async function actualizarUsuarios(){
@@ -1055,52 +1055,130 @@ $('user-chip').addEventListener('click', () => {
 let userPressTimer = null;
 let userPressTriggered = false;
 
-function iniciarPulsacionLarga(nombre){
+function iniciarPulsacionLarga(nombre, x, y){
   userPressTriggered = false;
-  userPressTimer = setTimeout(async () => {
+  userPressTimer = setTimeout(() => {
     userPressTriggered = true;
-    const confirmar = confirm('¿Eliminar a "' + nombre + '" de la lista de usuarios?\n\nSus registros anteriores no se borran, solo deja de aparecer como opción.');
-    if(!confirmar) return;
-
-    usuariosConocidos = usuariosConocidos.filter(n => n !== nombre);
-    localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
-    renderUserList();
-    renderHistUsuarioOptions();
-    if(activeUser === nombre){
-      activeUser = '';
-      localStorage.removeItem('reposicion-fungibles:usuario-activo');
-      renderUserChip();
-    }
-    if(sheetUrl){
-      try{
-        await fetch(sheetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'delete-usuario', nombre: nombre, token: sheetToken })
-        });
-      }catch(err){ /* se queda borrado local igualmente */ }
-    }
-    showToast('Usuario eliminado');
-  }, 600);
+    mostrarMenuContextual(nombre, x, y);
+  }, 500);
 }
 function cancelarPulsacionLarga(){
   clearTimeout(userPressTimer);
 }
 
+function mostrarMenuContextual(nombre, x, y){
+  cerrarMenuContextual();
+  const menu = document.createElement('div');
+  menu.id = 'user-context-menu';
+  menu.style.cssText = 'position:fixed;z-index:80;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);overflow:hidden;min-width:140px;';
+  menu.innerHTML = `
+    <div class="ctx-item" data-accion="editar" style="padding:12px 16px;font-size:14px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line)">✏️ Editar</div>
+    <div class="ctx-item" data-accion="eliminar" style="padding:12px 16px;font-size:14px;color:var(--red);cursor:pointer">🗑️ Eliminar</div>
+  `;
+  document.body.appendChild(menu);
+
+  // Posicionar dentro de la pantalla (evitar que se salga por los bordes)
+  const menuWidth = 150, menuHeight = 90;
+  const left = Math.min(x, window.innerWidth - menuWidth - 10);
+  const top = Math.min(y, window.innerHeight - menuHeight - 10);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+
+  menu.addEventListener('click', async (e) => {
+    const item = e.target.closest('.ctx-item');
+    if(!item) return;
+    cerrarMenuContextual();
+    if(item.dataset.accion === 'eliminar'){
+      await eliminarUsuario(nombre);
+    } else if(item.dataset.accion === 'editar'){
+      editarUsuario(nombre);
+    }
+  });
+
+  setTimeout(() => document.addEventListener('click', cerrarMenuContextualExterno), 0);
+}
+function cerrarMenuContextualExterno(e){
+  if(!e.target.closest('#user-context-menu')) cerrarMenuContextual();
+}
+function cerrarMenuContextual(){
+  const existente = document.getElementById('user-context-menu');
+  if(existente) existente.remove();
+  document.removeEventListener('click', cerrarMenuContextualExterno);
+}
+
+async function eliminarUsuario(nombre){
+  const confirmar = confirm('¿Eliminar a "' + nombre + '" de la lista de usuarios?\n\nSus registros anteriores no se borran, solo deja de aparecer como opción.');
+  if(!confirmar) return;
+
+  usuariosConocidos = usuariosConocidos.filter(n => n !== nombre);
+  localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
+  renderUserList();
+  renderHistUsuarioOptions();
+  if(activeUser === nombre){
+    activeUser = '';
+    localStorage.removeItem('reposicion-fungibles:usuario-activo');
+    renderUserChip();
+  }
+  if(sheetUrl){
+    try{
+      await fetch(sheetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'delete-usuario', nombre: nombre, token: sheetToken })
+      });
+    }catch(err){ /* se queda borrado local igualmente */ }
+  }
+  showToast('Usuario eliminado');
+}
+
+function editarUsuario(nombreActual){
+  const nuevo = prompt('Editar nombre:', nombreActual);
+  if(nuevo === null) return; // canceló
+  const nuevoLimpio = nuevo.trim().toUpperCase();
+  if(!nuevoLimpio || nuevoLimpio === nombreActual) return;
+
+  renombrarUsuario(nombreActual, nuevoLimpio);
+}
+
+async function renombrarUsuario(viejo, nuevo){
+  usuariosConocidos = usuariosConocidos.map(n => n === viejo ? nuevo : n);
+  localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
+  renderUserList();
+  renderHistUsuarioOptions();
+  if(activeUser === viejo){
+    activeUser = nuevo;
+    localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
+    renderUserChip();
+  }
+  if(sheetUrl){
+    try{
+      await fetch(sheetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'rename-usuario', nombreViejo: viejo, nombreNuevo: nuevo, token: sheetToken })
+      });
+    }catch(err){ /* se queda cambiado local igualmente */ }
+  }
+  showToast('Nombre actualizado');
+}
+
 $('user-list').addEventListener('mousedown', (e) => {
   const btn = e.target.closest('.user-option');
-  if(btn) iniciarPulsacionLarga(btn.dataset.nombre);
+  if(btn) iniciarPulsacionLarga(btn.dataset.nombre, e.clientX, e.clientY);
 });
 $('user-list').addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.user-option');
-  if(btn) iniciarPulsacionLarga(btn.dataset.nombre);
+  if(btn){
+    const t = e.touches[0];
+    iniciarPulsacionLarga(btn.dataset.nombre, t.clientX, t.clientY);
+  }
 }, { passive: true });
 ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => {
   $('user-list').addEventListener(evt, cancelarPulsacionLarga);
 });
 
 $('user-list').addEventListener('click', (e) => {
-  if(userPressTriggered){ userPressTriggered = false; return; } // ya se gestionó como borrado
+  if(userPressTriggered){ userPressTriggered = false; return; } // ya se gestionó con el menú contextual
   const btn = e.target.closest('.user-option');
   if(!btn) return;
   activeUser = btn.dataset.nombre;
