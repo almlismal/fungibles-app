@@ -61,10 +61,12 @@
   .card{
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 18px;
     margin-bottom: 16px;
     position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: box-shadow 0.2s ease;
   }
   .card::before{
     content: '';
@@ -80,14 +82,15 @@
   .field{ margin-bottom: 14px; position: relative; }
   input, select{
     width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
-    padding: 12px 12px; border-radius: 3px; font-size: 16px; font-family: var(--body);
+    padding: 12px 12px; border-radius: 6px; font-size: 16px; font-family: var(--body);
+    transition: border-color 0.15s ease;
   }
   input::placeholder{ color: #5B646D; }
   input:focus, select:focus{ outline: none; border-color: var(--amber); }
 
   .pn-result{
     position: absolute; left:0; right:0; top: calc(100% + 2px); z-index: 5;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
     max-height: 260px; overflow-y: auto; display:none;
   }
   .pn-result.open{ display:block; }
@@ -99,7 +102,7 @@
 
   .selected-chip{
     display:flex; align-items:center; justify-content: space-between;
-    background: var(--panel-2); border: 1px solid var(--amber-dim); border-radius: 3px;
+    background: var(--panel-2); border: 1px solid var(--amber-dim); border-radius: 6px;
     padding: 10px 12px; margin-bottom: 14px;
   }
   .selected-chip .x{ color: var(--text-dim); font-family: var(--mono); cursor: pointer; padding: 4px 8px; }
@@ -110,18 +113,21 @@
   .hint b{ color: var(--amber); font-weight: 600; }
 
   button.primary{
-    width: 100%; background: var(--amber); color: #16130A; border: none; border-radius: 3px;
+    width: 100%; background: var(--amber); color: #16130A; border: none; border-radius: 6px;
     padding: 15px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     font-family: var(--sans); cursor: pointer; margin-top: 4px;
+    transition: background 0.15s ease, transform 0.1s ease;
   }
-  button.primary:active{ background: #d99400; }
+  button.primary:active{ background: #d99400; transform: scale(0.98); }
   button.primary:disabled{ background: #4A4A42; color: #8a8a80; }
 
   button.secondary{
-    width: 100%; background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 3px;
+    width: 100%; background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 6px;
     padding: 13px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
     font-family: var(--sans); cursor: pointer; margin-top: 10px;
+    transition: border-color 0.15s ease, background 0.15s ease;
   }
+  button.secondary:active{ background: var(--panel-2); }
 
   .log-item{
     display:flex; justify-content: space-between; align-items: flex-start;
@@ -132,7 +138,7 @@
   .log-main .pn-desc{ font-size: 12.5px; }
   .log-meta{ text-align:right; font-size: 11.5px; color: var(--text-dim); white-space: nowrap; }
   .log-qty{ font-family: var(--mono); font-weight:600; color: var(--text); font-size: 14px; }
-  .qty-inline{ width: 60px; text-align: right; font-family: var(--mono); font-weight:600; font-size: 14px; padding: 4px 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; color: var(--text); }
+  .qty-inline{ width: 60px; text-align: right; font-family: var(--mono); font-weight:600; font-size: 14px; padding: 4px 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--text); }
   .del-btn{ background:none; border:none; color: var(--red); font-size: 18px; cursor:pointer; padding: 4px 6px; line-height:1; }
 
   .empty{ color: var(--text-dim); font-size: 13px; text-align:center; padding: 18px 0; }
@@ -140,13 +146,13 @@
   .toast{
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
     background: var(--green); color: #0A1F0D; font-weight: 600; font-size: 13px;
-    padding: 10px 18px; border-radius: 3px; opacity: 0; pointer-events: none;
+    padding: 10px 18px; border-radius: 6px; opacity: 0; pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease; font-family: var(--sans); letter-spacing: 0.03em; text-transform: uppercase;
   }
   .toast.show{ opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
   .stat-row{ display:flex; gap: 10px; margin-bottom: 4px; }
-  .stat{ flex:1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; }
+  .stat{ flex:1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
   .stat .n{ font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--amber); }
   .stat .l{ font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 
@@ -161,10 +167,6 @@
   <div class="sub" id="today-label">—</div>
 </header>
 
-<div id="install-tip" style="display:none; background:var(--panel-2); border-bottom:1px solid var(--line); padding:10px 18px; font-size:12.5px; color:var(--text-dim);">
-  📲 Para usarla como app: toca <b style="color:var(--amber)">Compartir</b> → <b style="color:var(--amber)">Añadir a pantalla de inicio</b>.
-</div>
-
 <main>
 
   <div class="card">
@@ -173,13 +175,16 @@
       <div id="sync-status" style="font-size:11.5px;color:var(--text-dim);cursor:pointer" onclick="toggleSettings()"></div>
       <span id="refresh-catalog-btn" style="font-size:11.5px;color:var(--amber);cursor:pointer">🔄 Catálogo</span>
     </div>
-    <div id="settings-panel" style="display:none;margin-bottom:14px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:3px">
+    <div id="settings-panel" style="display:none;margin-bottom:14px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px">
       <label>URL de Google Apps Script (termina en /exec)</label>
-      <input type="text" id="sheet-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <input type="text" id="sheet-url" name="sheet-url" autocomplete="url" placeholder="https://script.google.com/macros/s/.../exec">
       <label style="margin-top:10px">Clave de acceso (la misma que pusiste en el script)</label>
-      <input type="text" id="sheet-token" placeholder="ej. lis-fungibles-2026">
+      <input type="text" id="sheet-token" name="sheet-token" autocomplete="current-password" placeholder="ej. lis-fungibles-2026">
+      <label style="margin-top:10px">Enlace de la hoja (para consultarla, no es el del script)</label>
+      <input type="text" id="sheet-view-url" name="sheet-view-url" autocomplete="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
       <button class="secondary" id="save-url-btn" style="margin-top:8px">Guardar</button>
     </div>
+    <button class="secondary" id="view-sheet-btn" style="margin-bottom:14px;display:none">📊 Ver hoja de reposiciones</button>
 
     <button class="secondary" id="scan-btn" style="margin-bottom:14px">📷 Escanear etiqueta</button>
     <input type="file" id="scan-input-fallback" accept="image/*" capture="environment" style="display:none">
@@ -188,7 +193,7 @@
       <video id="scan-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
       <canvas id="scan-canvas" style="display:none;"></canvas>
       <div style="position:absolute;top:0;left:0;right:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:linear-gradient(#000000cc, transparent);display:flex;justify-content:space-between;align-items:center;">
-        <div id="scan-live-status" style="color:#fff;font-family:var(--sans);font-size:14px;text-transform:uppercase;letter-spacing:0.04em;">Buscando etiqueta…</div>
+        <div id="scan-live-status" style="color:#fff;font-family:var(--sans);font-size:14px;text-transform:uppercase;letter-spacing:0.04em;">Buscando código…</div>
         <button id="scan-cancel-btn" style="background:none;border:1px solid #666;color:#fff;border-radius:50%;width:34px;height:34px;font-size:16px;">✕</button>
       </div>
       <div style="position:absolute;left:10%;right:10%;top:35%;bottom:35%;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.35);"></div>
@@ -229,8 +234,18 @@
       </div>
       <div class="field">
         <label>Operario</label>
-        <input type="text" id="turno" placeholder="Tu nombre">
+        <div id="user-chip" style="background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:6px;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span id="user-chip-name" style="font-weight:600">Seleccionar usuario</span>
+          <span style="color:var(--text-dim);font-size:11px">cambiar</span>
+        </div>
       </div>
+    </div>
+
+    <div id="user-picker-panel" style="display:none;margin-top:10px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Selecciona tu usuario</div>
+      <div id="user-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+      <input type="text" id="new-user-input" placeholder="¿No apareces en la lista? Escribe tu nombre">
+      <button class="secondary" id="add-user-btn" style="margin-top:8px">Añadir y continuar</button>
     </div>
 
     <button class="primary" id="add-btn" disabled>Registrar reposición</button>
@@ -238,13 +253,49 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Pendiente de emitir en SAP</div>
+    <div id="pending-sync-banner" style="display:none;background:#3A2A0A;border:1px solid var(--amber-dim);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--amber);align-items:center;justify-content:space-between">
+      <span id="pending-sync-text"></span>
+      <u id="retry-all-btn" style="cursor:pointer;font-size:11px;white-space:nowrap;margin-left:8px">reintentar todo</u>
+    </div>
+    <div class="card-title" id="log-title">Pendiente de emitir en SAP</div>
     <div class="stat-row">
       <div class="stat"><div class="n" id="stat-count">0</div><div class="l">Líneas</div></div>
       <div class="stat"><div class="n" id="stat-units">0</div><div class="l">Unidades totales</div></div>
     </div>
     <div id="log-list"><div class="empty">Aún no has registrado ninguna reposición.</div></div>
     <button class="secondary" id="export-btn">Descargar Excel</button>
+    <button class="secondary" id="save-daily-btn" style="margin-top:8px">📁 Guardar Excel de hoy en Drive ahora</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="cursor:pointer" id="toggle-history-card">📖 Historial (solo lectura)</div>
+    <div id="history-body" style="display:none;margin-top:12px">
+      <div class="row2">
+        <div class="field">
+          <label>Usuario</label>
+          <select id="hist-usuario" style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:16px">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="hist-fecha">
+        </div>
+      </div>
+      <button class="secondary" id="hist-buscar-btn">Buscar</button>
+      <div id="hist-resultados" style="margin-top:12px"></div>
+      <div class="hint" style="margin-top:10px">Esto es solo de consulta. Para modificar un registro, hazlo desde <span id="hist-sheets-link" style="color:var(--amber);text-decoration:underline;cursor:pointer">la Google Sheet</span>.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="cursor:pointer" id="toggle-notes-card">📝 Lista rápida (antes de reponer)</div>
+    <div id="notes-body" style="display:none;margin-top:12px">
+      <div class="hint" style="margin-bottom:10px">Solo para apuntar lo que necesitas ir a buscar. No se sincroniza ni cuenta como registro — bórrala cuando termines.</div>
+      <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
+        style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
+      <button class="secondary" id="clear-notes-btn" style="margin-top:8px">Vaciar lista</button>
+    </div>
   </div>
 
   <footer>LIS · Reposición de Fungibles</footer>
@@ -280,7 +331,8 @@ async function actualizarCatalogo(silencioso){
 const $ = (id) => document.getElementById(id);
 let selected = null;
 let entries = [];
-let lastTurno = '';
+let activeUser = localStorage.getItem('reposicion-fungibles:usuario-activo') || '';
+let usuariosConocidos = JSON.parse(localStorage.getItem('reposicion-fungibles:usuarios') || '[]');
 let editingIndex = null;
 
 function todayISO(){
@@ -492,25 +544,38 @@ $('fecha').value = todayISO();
 
 let sheetUrl = localStorage.getItem('reposicion-fungibles:sheet-url') || '';
 let sheetToken = localStorage.getItem('reposicion-fungibles:sheet-token') || '';
+let sheetViewUrl = localStorage.getItem('reposicion-fungibles:sheet-view-url') || '';
 
 function toggleSettings(){
   const p = $('settings-panel');
   p.style.display = p.style.display === 'none' ? 'block' : 'none';
-  if(p.style.display === 'block'){ $('sheet-url').value = sheetUrl; $('sheet-token').value = sheetToken; }
+  if(p.style.display === 'block'){
+    $('sheet-url').value = sheetUrl;
+    $('sheet-token').value = sheetToken;
+    $('sheet-view-url').value = sheetViewUrl;
+  }
 }
 function renderSyncStatus(){
   $('sync-status').textContent = sheetUrl
     ? '🟢 Conectado a Google Sheets (toca para cambiar)'
     : '⚪ Sin conectar a Google Sheets — toca para configurar';
+  $('view-sheet-btn').style.display = sheetViewUrl ? 'block' : 'none';
+  $('export-btn').style.display = sheetUrl ? 'none' : 'block';
+  $('save-daily-btn').style.display = sheetUrl ? 'block' : 'none';
 }
 $('save-url-btn').addEventListener('click', () => {
   sheetUrl = $('sheet-url').value.trim();
   sheetToken = $('sheet-token').value.trim();
+  sheetViewUrl = $('sheet-view-url').value.trim();
   localStorage.setItem('reposicion-fungibles:sheet-url', sheetUrl);
   localStorage.setItem('reposicion-fungibles:sheet-token', sheetToken);
+  localStorage.setItem('reposicion-fungibles:sheet-view-url', sheetViewUrl);
   renderSyncStatus();
   showToast(sheetUrl ? 'URL guardada' : 'Desconectado');
   $('settings-panel').style.display = 'none';
+});
+$('view-sheet-btn').addEventListener('click', () => {
+  if(sheetViewUrl) window.open(sheetViewUrl, '_blank');
 });
 renderSyncStatus();
 
@@ -530,10 +595,7 @@ async function syncToSheet(entry){
   }
 }
 
-// Muestra el aviso de "añadir a pantalla de inicio" solo en Safari iOS y si no está ya instalada
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = window.navigator.standalone === true;
-if(isIOS && !isStandalone){ $('install-tip').style.display = 'block'; }
+// (aviso de instalación quitado)
 
 // ---- storage (localStorage estándar del navegador — funciona abriendo el archivo directamente) ----
 async function loadEntries(){
@@ -541,19 +603,11 @@ async function loadEntries(){
     const raw = localStorage.getItem('reposicion-fungibles:pendientes');
     entries = raw ? JSON.parse(raw) : [];
   }catch(e){ entries = []; }
-  try{
-    const t = localStorage.getItem('reposicion-fungibles:ultimo-operario');
-    lastTurno = t || '';
-    if(lastTurno) $('turno').value = lastTurno;
-  }catch(e){}
   renderLog();
 }
 async function saveEntries(){
   try{ localStorage.setItem('reposicion-fungibles:pendientes', JSON.stringify(entries)); }
   catch(e){ console.error('storage error', e); }
-}
-async function saveTurno(v){
-  try{ localStorage.setItem('reposicion-fungibles:ultimo-operario', v); }catch(e){}
 }
 
 // ---- catalog search ----
@@ -664,11 +718,10 @@ function validateForm(){
   const cant = parseFloat($('cantidad').value);
   const okCant = !isNaN(cant) && cant > 0;
   const okLote = !selected || !selected.lote || $('lote').value.trim().length > 0;
-  $('add-btn').disabled = !(selected && okCant && okLote);
+  $('add-btn').disabled = !(selected && okCant && okLote && activeUser);
 }
 $('lote').addEventListener('input', validateForm);
 $('fecha').addEventListener('input', validateForm);
-$('turno').addEventListener('input', validateForm);
 
 function showToast(msg){
   const t = $('toast');
@@ -685,7 +738,6 @@ function startEdit(i){
   $('cantidad').value = e.cantidad;
   $('lote').value = e.lote || '';
   $('fecha').value = e.fecha;
-  $('turno').value = e.turno === '—' ? '' : e.turno;
   $('add-btn').textContent = 'Guardar cambios';
   $('cancel-edit-btn').style.display = 'block';
   window.scrollTo({top:0, behavior:'smooth'});
@@ -700,7 +752,6 @@ function cancelEdit(){
   searchInput.value = '';
   $('cantidad').value = '';
   $('lote').value = '';
-  $('turno').value = lastTurno;
   $('mult-hint').textContent = '';
   $('add-btn').textContent = 'Registrar reposición';
   $('cancel-edit-btn').style.display = 'none';
@@ -733,7 +784,7 @@ $('add-btn').addEventListener('click', async () => {
 
   $('add-btn').disabled = true;
 
-  const turno = $('turno').value.trim() || '—';
+  const turno = activeUser;
   const fecha = $('fecha').value || todayISO();
   const lote = $('lote').value.trim();
   const total = cant * selected.mult;
@@ -756,7 +807,6 @@ $('add-btn').addEventListener('click', async () => {
   }
 
   await saveEntries();
-  if(turno !== lastTurno && turno !== '—'){ lastTurno = turno; await saveTurno(turno); }
 
   const wasEdit = isEdit;
   cancelEdit(); // limpia el formulario y sale del modo edición
@@ -776,18 +826,27 @@ $('add-btn').addEventListener('click', async () => {
 });
 
 function syncBadge(s){
-  if(s === 'ok') return '<span style="color:var(--green)">✓ Sheets</span>';
-  if(s === 'error') return '<span style="color:var(--red)">⚠ error <u class="retry" style="cursor:pointer">reintentar</u></span>';
-  if(s === 'pendiente') return '<span style="color:var(--text-dim)">… enviando</span>';
-  return '<span style="color:var(--text-dim)">local</span>';
+  var base = 'display:inline-block;padding:3px 8px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;';
+  if(s === 'ok') return '<span style="' + base + 'background:var(--green);color:#0A1F0D">✓ Sincronizado</span>';
+  if(s === 'error') return '<span style="' + base + 'background:var(--red);color:#2A0A08">✕ No subido</span> <u class="retry" style="cursor:pointer;color:var(--text-dim);font-size:11px">reintentar</u>';
+  if(s === 'pendiente') return '<span style="' + base + 'background:#4A4A3A;color:#EDEDED">… enviando</span>';
+  return '<span style="' + base + 'background:var(--panel-2);color:var(--text-dim);border:1px solid var(--line)">local</span>';
+}
+
+function entradasVisibles(){
+  const items = entries.map((e, i) => ({ e, i }));
+  const hoy = todayISO();
+  return items.filter(({e}) => e.fecha === hoy && e.turno === activeUser);
 }
 
 function renderLog(){
   const list = $('log-list');
-  if(entries.length === 0){
-    list.innerHTML = '<div class="empty">Aún no has registrado ninguna reposición.</div>';
+  const visibles = entradasVisibles();
+
+  if(visibles.length === 0){
+    list.innerHTML = '<div class="empty">Aún no has registrado ninguna reposición hoy.</div>';
   } else {
-    list.innerHTML = entries.map((e, i) => `
+    list.innerHTML = visibles.map(({e, i}) => `
       <div class="log-item">
         <div class="log-main">
           <div class="pn-code">${e.pn}</div>
@@ -804,9 +863,32 @@ function renderLog(){
       </div>
     `).join('');
   }
-  $('stat-count').textContent = entries.length;
-  $('stat-units').textContent = entries.reduce((s,e)=>s+e.total,0).toLocaleString('es-ES');
+  $('stat-count').textContent = visibles.length;
+  $('stat-units').textContent = visibles.reduce((s,{e}) => s + e.total, 0).toLocaleString('es-ES');
+
+  renderPendingBanner();
 }
+
+function renderPendingBanner(){
+  const banner = $('pending-sync-banner');
+  if(!sheetUrl){ banner.style.display = 'none'; return; }
+  const sinSubir = entries.filter(e => e.sync === 'pendiente' || e.sync === 'error').length;
+  if(sinSubir === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  $('pending-sync-text').textContent = '⚠ ' + sinSubir + (sinSubir === 1 ? ' registro sin subir a Sheets' : ' registros sin subir a Sheets');
+}
+
+$('retry-all-btn').addEventListener('click', async () => {
+  const pendientes = entries.filter(e => e.sync === 'pendiente' || e.sync === 'error');
+  if(pendientes.length === 0) return;
+  showToast('Reintentando ' + pendientes.length + '…');
+  for(const entry of pendientes){
+    const result = await syncToSheet(entry);
+    entry.sync = (result === 'creado' || result === 'actualizado') ? 'ok' : 'error';
+  }
+  await saveEntries();
+  renderLog();
+});
 
 $('log-list').addEventListener('change', async (e) => {
   const input = e.target.closest('.qty-inline');
@@ -860,6 +942,9 @@ $('log-list').addEventListener('click', async (e) => {
   const i = parseInt(btn.dataset.i, 10);
   const entry = entries[i];
 
+  const confirmar = confirm('¿Borrar este registro?\n\n' + entry.pn + ' — ' + entry.cantidad + ' ud.\n' + entry.fecha + ' · ' + entry.turno);
+  if(!confirmar) return;
+
   entries.splice(i,1);
   await saveEntries();
   renderLog();
@@ -908,8 +993,186 @@ $('export-btn').addEventListener('click', () => {
   showToast('Excel generado');
 });
 
+// ---- Usuario activo ----
+function renderUserChip(){
+  $('user-chip-name').textContent = activeUser || 'Seleccionar usuario';
+  validateForm();
+  renderLog();
+}
+
+function renderUserList(){
+  const box = $('user-list');
+  if(usuariosConocidos.length === 0){
+    box.innerHTML = '<div style="color:var(--text-dim);font-size:12px">Aún no hay nadie en la lista — añádete abajo.</div>';
+    return;
+  }
+  box.innerHTML = usuariosConocidos.map(nombre => `
+    <button type="button" class="user-option" data-nombre="${nombre}"
+      style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;cursor:pointer">
+      ${nombre}
+    </button>
+  `).join('');
+}
+
+async function actualizarUsuarios(){
+  if(!sheetUrl) return;
+  try{
+    const url = sheetUrl + '?action=usuarios&token=' + encodeURIComponent(sheetToken);
+    const res = await fetch(url);
+    if(!res.ok) return;
+    const nombres = await res.json();
+    if(Array.isArray(nombres)){
+      usuariosConocidos = nombres;
+      localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(nombres));
+      renderUserList();
+      renderHistUsuarioOptions();
+    }
+  }catch(e){ /* sin conexión: se queda con la lista guardada */ }
+}
+
+$('user-chip').addEventListener('click', () => {
+  $('user-picker-panel').style.display = $('user-picker-panel').style.display === 'none' ? 'block' : 'none';
+  renderUserList();
+});
+
+$('user-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('.user-option');
+  if(!btn) return;
+  activeUser = btn.dataset.nombre;
+  localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
+  $('user-picker-panel').style.display = 'none';
+  renderUserChip();
+});
+
+$('add-user-btn').addEventListener('click', async () => {
+  const nombre = $('new-user-input').value.trim().toUpperCase();
+  if(!nombre) return;
+
+  if(!usuariosConocidos.some(n => n.toUpperCase() === nombre)){
+    usuariosConocidos.push(nombre);
+    localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
+  }
+  activeUser = nombre;
+  localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
+  $('new-user-input').value = '';
+  $('user-picker-panel').style.display = 'none';
+  renderUserChip();
+  renderHistUsuarioOptions();
+
+  if(sheetUrl){
+    try{
+      await fetch(sheetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'add-usuario', nombre: nombre, token: sheetToken })
+      });
+    }catch(err){ /* se queda guardado local igualmente */ }
+  }
+});
+
+renderUserChip();
+renderUserList();
+
+// ---- Historial de solo lectura (consulta directa a la Sheet, todos los usuarios) ----
+function renderHistUsuarioOptions(){
+  const sel = $('hist-usuario');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>' + usuariosConocidos.map(n => `<option value="${n}">${n}</option>`).join('');
+  sel.value = actual;
+}
+renderHistUsuarioOptions();
+$('hist-fecha').value = todayISO();
+
+$('toggle-history-card').addEventListener('click', () => {
+  const body = $('history-body');
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+});
+
+$('hist-sheets-link').addEventListener('click', () => {
+  if(sheetViewUrl) window.open(sheetViewUrl, '_blank');
+  else showToast('Configura el enlace de la hoja en el panel de conexión');
+});
+
+function fechaISOaDMY(iso){
+  const p = iso.split('-');
+  return parseInt(p[2],10) + '/' + parseInt(p[1],10) + '/' + p[0];
+}
+
+$('hist-buscar-btn').addEventListener('click', async () => {
+  const box = $('hist-resultados');
+  if(!sheetUrl){
+    box.innerHTML = '<div class="empty">Conecta primero la Google Sheet (arriba del todo).</div>';
+    return;
+  }
+  box.innerHTML = '<div class="empty">Buscando…</div>';
+
+  const fechaDMY = $('hist-fecha').value ? fechaISOaDMY($('hist-fecha').value) : '';
+  const usuario = $('hist-usuario').value;
+
+  try{
+    const url = sheetUrl + '?action=historial&token=' + encodeURIComponent(sheetToken)
+      + '&fecha=' + encodeURIComponent(fechaDMY) + '&turno=' + encodeURIComponent(usuario);
+    const res = await fetch(url);
+    const items = await res.json();
+
+    if(!Array.isArray(items) || items.length === 0){
+      box.innerHTML = '<div class="empty">Sin registros para esa búsqueda.</div>';
+      return;
+    }
+    const totalUd = items.reduce((s,it) => s + (parseFloat(it.total) || 0), 0);
+    box.innerHTML = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:8px">' + items.length + ' líneas · ' + totalUd.toLocaleString('es-ES') + ' ud. totales</div>'
+      + items.map(it => `
+        <div class="log-item">
+          <div class="log-main">
+            <div class="pn-code">${it.pn}</div>
+            <div class="pn-desc">${it.desc || ''}</div>
+          </div>
+          <div class="log-meta">
+            <div class="log-qty">${it.cantidad} ud.</div>
+            <div>${it.fecha} · ${it.turno}</div>
+          </div>
+        </div>
+      `).join('');
+  }catch(err){
+    box.innerHTML = '<div class="empty">⚠ No se pudo consultar la hoja ahora mismo.</div>';
+  }
+});
+
+$('save-daily-btn').addEventListener('click', async () => {
+  if(!sheetUrl){ showToast('Conecta primero la Google Sheet'); return; }
+  showToast('Generando Excel de hoy…');
+  try{
+    const res = await fetch(sheetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'guardar-diario', token: sheetToken })
+    });
+    const body = await res.json().catch(() => null);
+    showToast(body && body.status === 'guardado' ? '✓ Guardado en Drive' : '⚠ No se pudo guardar');
+  }catch(err){
+    showToast('⚠ No se pudo conectar para guardar');
+  }
+});
+
+// ---- Lista rápida / ayuda memoria (independiente de los registros, no se sincroniza) ----
+$('quick-notes').value = localStorage.getItem('reposicion-fungibles:notas-rapidas') || '';
+
+$('toggle-notes-card').addEventListener('click', () => {
+  const body = $('notes-body');
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+});
+$('quick-notes').addEventListener('input', () => {
+  localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
+});
+$('clear-notes-btn').addEventListener('click', () => {
+  $('quick-notes').value = '';
+  localStorage.removeItem('reposicion-fungibles:notas-rapidas');
+  showToast('Lista vaciada');
+});
+
 loadEntries();
 actualizarCatalogo(true); // actualización silenciosa al abrir la app
+actualizarUsuarios();
 $('refresh-catalog-btn').addEventListener('click', () => actualizarCatalogo(false));
 </script>
 <script>
