@@ -701,7 +701,10 @@ $('chip-clear').addEventListener('click', () => {
   searchInput.style.display = 'block';
   searchInput.value = '';
   searchInput.focus();
+  $('cantidad').value = '';
+  $('lote').value = '';
   $('mult-hint').textContent = '';
+  $('lote-warning').style.display = 'none';
   validateForm();
 });
 
@@ -1197,12 +1200,20 @@ $('add-user-btn').addEventListener('click', async () => {
 
   if(sheetUrl){
     try{
-      await fetch(sheetUrl, {
+      const res = await fetch(sheetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'add-usuario', nombre: nombre, token: sheetToken })
       });
-    }catch(err){ /* se queda guardado local igualmente */ }
+      const body = await res.json().catch(() => null);
+      if(!body || body.status !== 'ok'){
+        showToast('⚠ No se compartió con los demás dispositivos — revisa la clave en Conectar Sheets');
+      }
+    }catch(err){
+      showToast('⚠ Sin conexión: solo se guardó en este dispositivo por ahora');
+    }
+  } else {
+    showToast('⚠ No conectado a Sheets: solo se guardó en este dispositivo');
   }
 });
 
