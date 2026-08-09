@@ -266,7 +266,6 @@
     </div>
     <div id="log-list"><div class="empty">Aún no has registrado ninguna reposición.</div></div>
     <button class="secondary" id="export-btn">Descargar Excel</button>
-    <button class="secondary" id="save-daily-btn" style="margin-top:8px">📁 Guardar Excel de hoy en Drive ahora</button>
   </div>
 
   <div class="card">
@@ -576,7 +575,6 @@ function renderSyncStatus(){
     : '⚪ Sin conectar a Google Sheets — toca para configurar';
   $('view-sheet-btn').style.display = sheetViewUrl ? 'block' : 'none';
   $('export-btn').style.display = sheetUrl ? 'none' : 'block';
-  $('save-daily-btn').style.display = sheetUrl ? 'block' : 'none';
 }
 $('save-url-btn').addEventListener('click', () => {
   sheetUrl = $('sheet-url').value.trim();
@@ -1278,22 +1276,6 @@ $('hist-buscar-btn').addEventListener('click', async () => {
       `).join('');
   }catch(err){
     box.innerHTML = '<div class="empty">⚠ No se pudo consultar la hoja ahora mismo.</div>';
-  }
-});
-
-$('save-daily-btn').addEventListener('click', async () => {
-  if(!sheetUrl){ showToast('Conecta primero la Google Sheet'); return; }
-  showToast('Generando Excel de hoy…');
-  try{
-    const res = await fetch(sheetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'guardar-diario', token: sheetToken })
-    });
-    const body = await res.json().catch(() => null);
-    showToast(body && body.status === 'guardado' ? '✓ Guardado en Drive' : '⚠ No se pudo guardar');
-  }catch(err){
-    showToast('⚠ No se pudo conectar para guardar');
   }
 });
 
