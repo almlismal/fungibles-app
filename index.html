@@ -285,8 +285,7 @@
       </div>
       <button class="secondary" id="hist-buscar-btn">Buscar</button>
       <div id="hist-resultados" style="margin-top:12px"></div>
-      <div class="hint" style="margin-top:10px">Esto es solo de consulta. Para modificar un registro, hazlo desde <span id="hist-sheets-link" style="color:var(--amber);text-decoration:underline;cursor:pointer">la Google Sheet</span>.</div>
-    </div>
+          </div>
   </div>
 
   <div class="card">
@@ -1045,8 +1044,10 @@ async function actualizarUsuarios(){
 }
 
 $('user-chip').addEventListener('click', () => {
-  $('user-picker-panel').style.display = $('user-picker-panel').style.display === 'none' ? 'block' : 'none';
+  const abriendo = $('user-picker-panel').style.display === 'none';
+  $('user-picker-panel').style.display = abriendo ? 'block' : 'none';
   renderUserList();
+  if(abriendo) actualizarUsuarios(); // trae la lista más reciente de la Sheet (por si otro móvil añadió a alguien)
 });
 
 // Toque normal: seleccionar. Mantener pulsado (~600ms): borrar.
@@ -1226,12 +1227,9 @@ $('hist-fecha').value = todayISO();
 
 $('toggle-history-card').addEventListener('click', () => {
   const body = $('history-body');
-  body.style.display = body.style.display === 'none' ? 'block' : 'none';
-});
-
-$('hist-sheets-link').addEventListener('click', () => {
-  if(sheetViewUrl) window.open(sheetViewUrl, '_blank');
-  else showToast('Configura el enlace de la hoja en el panel de conexión');
+  const abriendo = body.style.display === 'none';
+  body.style.display = abriendo ? 'block' : 'none';
+  if(abriendo) actualizarUsuarios();
 });
 
 function fechaISOaDMY(iso){
