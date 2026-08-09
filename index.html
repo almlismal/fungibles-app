@@ -180,11 +180,8 @@
       <input type="text" id="sheet-url" name="sheet-url" autocomplete="url" placeholder="https://script.google.com/macros/s/.../exec">
       <label style="margin-top:10px">Clave de acceso (la misma que pusiste en el script)</label>
       <input type="text" id="sheet-token" name="sheet-token" autocomplete="current-password" placeholder="ej. lis-fungibles-2026">
-      <label style="margin-top:10px">Enlace de la hoja (para consultarla, no es el del script)</label>
-      <input type="text" id="sheet-view-url" name="sheet-view-url" autocomplete="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
       <button class="secondary" id="save-url-btn" style="margin-top:8px">Guardar</button>
     </div>
-    <button class="secondary" id="view-sheet-btn" style="margin-bottom:14px;display:none">📊 Ver hoja de reposiciones</button>
 
     <button class="secondary" id="scan-btn" style="margin-bottom:14px">📷 Escanear etiqueta</button>
     <input type="file" id="scan-input-fallback" accept="image/*" capture="environment" style="display:none">
@@ -250,6 +247,7 @@
       <button class="secondary" id="add-user-btn" style="margin-top:8px">Añadir y continuar</button>
     </div>
 
+    <div id="lote-warning" style="display:none;color:var(--amber);font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">⚠ Este artículo requiere número de lote</div>
     <button class="primary" id="add-btn" disabled>Registrar reposición</button>
     <button class="secondary" id="cancel-edit-btn" style="display:none">Cancelar edición</button>
   </div>
@@ -557,7 +555,6 @@ $('fecha').value = todayISO();
 
 let sheetUrl = localStorage.getItem('reposicion-fungibles:sheet-url') || '';
 let sheetToken = localStorage.getItem('reposicion-fungibles:sheet-token') || '';
-let sheetViewUrl = localStorage.getItem('reposicion-fungibles:sheet-view-url') || '';
 
 function toggleSettings(){
   const p = $('settings-panel');
@@ -565,29 +562,22 @@ function toggleSettings(){
   if(p.style.display === 'block'){
     $('sheet-url').value = sheetUrl;
     $('sheet-token').value = sheetToken;
-    $('sheet-view-url').value = sheetViewUrl;
   }
 }
 function renderSyncStatus(){
   $('sync-status').textContent = sheetUrl
     ? '🟢 Conectado a Google Sheets (toca para cambiar)'
     : '⚪ Sin conectar a Google Sheets — toca para configurar';
-  $('view-sheet-btn').style.display = sheetViewUrl ? 'block' : 'none';
   $('export-btn').style.display = sheetUrl ? 'none' : 'block';
 }
 $('save-url-btn').addEventListener('click', () => {
   sheetUrl = $('sheet-url').value.trim();
   sheetToken = $('sheet-token').value.trim();
-  sheetViewUrl = $('sheet-view-url').value.trim();
   localStorage.setItem('reposicion-fungibles:sheet-url', sheetUrl);
   localStorage.setItem('reposicion-fungibles:sheet-token', sheetToken);
-  localStorage.setItem('reposicion-fungibles:sheet-view-url', sheetViewUrl);
   renderSyncStatus();
   showToast(sheetUrl ? 'URL guardada' : 'Desconectado');
   $('settings-panel').style.display = 'none';
-});
-$('view-sheet-btn').addEventListener('click', () => {
-  if(sheetViewUrl) window.open(sheetViewUrl, '_blank');
 });
 renderSyncStatus();
 
@@ -634,7 +624,7 @@ function renderResults(items){
   }
   resultBox.innerHTML = items.slice(0,30).map((it,i) =>
     `<div class="pn-item" data-idx="${CATALOG.indexOf(it)}">
-       <div class="pn-code">${it.pn}</div>
+       <div class="pn-code" style="${it.lote ? 'color:var(--amber)' : ''}">${it.pn}${it.lote ? ' · lote obligatorio' : ''}</div>
        <div class="pn-desc">${it.desc || ''}</div>
      </div>`
   ).join('');
@@ -695,7 +685,9 @@ resultBox.addEventListener('click', (e) => {
 function selectItem(it){
   selected = it;
   $('chip-pn').textContent = it.pn;
+  $('chip-pn').style.color = it.lote ? 'var(--amber)' : 'var(--text)';
   $('chip-desc').textContent = it.desc || '';
+  $('chip-wrap').style.borderColor = it.lote ? 'var(--amber)' : 'var(--amber-dim)';
   $('chip-wrap').style.display = 'flex';
   searchInput.style.display = 'none';
   resultBox.classList.remove('open');
@@ -729,7 +721,9 @@ $('cantidad').addEventListener('input', () => { updateMultHint(); validateForm()
 function validateForm(){
   const cant = parseFloat($('cantidad').value);
   const okCant = !isNaN(cant) && cant > 0;
-  const okLote = !selected || !selected.lote || $('lote').value.trim().length > 0;
+  const loteFalta = selected && selected.lote && $('lote').value.trim().length === 0;
+  const okLote = !loteFalta;
+  $('lote-warning').style.display = loteFalta ? 'block' : 'none';
   $('add-btn').disabled = !(selected && okCant && okLote && activeUser);
 }
 $('lote').addEventListener('input', validateForm);
