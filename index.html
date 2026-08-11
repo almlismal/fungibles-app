@@ -634,7 +634,27 @@ function renderResults(items){
   resultBox.classList.add('open');
 }
 
+let pdaScanTimeout = null;
 searchInput.addEventListener('input', () => {
+  const raw = searchInput.value;
+
+  // Detección robusta de escaneo por PDA: el valor tiene forma PN;LOTE;UBICACIÓN.
+  // No depende de que la PDA mande Enter/Tab — basta con que aparezca esa forma.
+  if(raw.split(';').length >= 3){
+    resultBox.classList.remove('open');
+    clearTimeout(pdaScanTimeout);
+    pdaScanTimeout = setTimeout(() => {
+      if(searchInput.value === raw){ // el texto ya no está cambiando, es un escaneo completo
+        searchInput.value = '';
+        const statusEl = $('scan-status');
+        statusEl.style.display = 'block';
+        aplicarCodigoBarras(raw.trim(), (msg) => statusEl.textContent = msg);
+        setTimeout(() => statusEl.style.display = 'none', 4000);
+      }
+    }, 150);
+    return;
+  }
+
   const q = searchInput.value.trim().toLowerCase();
   if(q.length === 0){ resultBox.classList.remove('open'); return; }
   const matches = CATALOG.filter(it =>
