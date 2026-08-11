@@ -200,6 +200,7 @@
     </div>
 
     <div id="scan-status" style="display:none;font-size: 14.5px;color:var(--amber);margin:-8px 0 14px;text-align:center"></div>
+    <div id="scan-debug" style="display:none;font-size:11px;color:var(--text-dim);font-family:var(--mono);margin:-8px 0 14px;text-align:center;word-break:break-all"></div>
 
     <div class="field" id="pn-field">
       <label>Artículo</label>
@@ -1372,6 +1373,13 @@ document.addEventListener('keydown', (e) => {
   }
 
   globalScanBuffer += e.key;
+
+  // DIAGNÓSTICO TEMPORAL: muestra lo que se va capturando y el intervalo entre teclas
+  const dbg = $('scan-debug');
+  dbg.style.display = 'block';
+  dbg.textContent = '🔧 captura: "' + globalScanBuffer + '" (gap ' + gap + 'ms)';
+  clearTimeout(window._scanDebugHide);
+  window._scanDebugHide = setTimeout(() => { dbg.style.display = 'none'; }, 6000);
 
   if(globalScanBuffer.split(';').length >= 3){
     clearTimeout(globalScanTimeout);
