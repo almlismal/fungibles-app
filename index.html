@@ -856,6 +856,14 @@ function entradasVisibles(){
     .sort((a, b) => (b.e.createdAt || 0) - (a.e.createdAt || 0)); // más reciente primero
 }
 
+function horaDeId(id){
+  if(!id) return '';
+  const ms = parseInt(String(id).split('-')[0], 10);
+  if(isNaN(ms)) return '';
+  const d = new Date(ms);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
 function renderLog(){
   const list = $('log-list');
   const visibles = entradasVisibles();
@@ -872,7 +880,7 @@ function renderLog(){
         <div class="log-meta">
           <div><input type="number" class="qty-inline" data-i="${i}" value="${e.cantidad}" min="0" step="any"> ud.</div>
           <div style="color:var(--amber);font-size: 15px">${e.total.toLocaleString('es-ES')} ud. SAP</div>
-          <div>${e.fecha} · ${e.turno}</div>
+          <div>${e.fecha} ${horaDeId(e.id)} · ${e.turno}</div>
           <div data-i="${i}">${syncBadge(e.sync)}</div>
           <div><u class="edit-btn" data-i="${i}" style="cursor:pointer;color:var(--text-dim)">editar</u></div>
         </div>
@@ -1281,7 +1289,7 @@ $('hist-buscar-btn').addEventListener('click', async () => {
           </div>
           <div class="log-meta">
             <div class="log-qty">${it.cantidad} ud.</div>
-            <div>${it.fecha} · ${it.turno}</div>
+            <div>${it.fecha} ${horaDeId(it.id)} · ${it.turno}</div>
           </div>
         </div>
       `).join('');
