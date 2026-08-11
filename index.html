@@ -247,6 +247,7 @@
       <button class="secondary" id="add-user-btn" style="margin-top:8px">Añadir y continuar</button>
     </div>
 
+    <div id="fecha-warning" style="display:none;color:var(--red);font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">⚠ La fecha debe ser la de hoy</div>
     <div id="lote-warning" style="display:none;color:var(--amber);font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">⚠ Este artículo requiere número de lote</div>
     <button class="primary" id="add-btn" disabled>Registrar reposición</button>
     <button class="secondary" id="cancel-edit-btn" style="display:none">Cancelar edición</button>
@@ -552,6 +553,8 @@ $('scan-input-fallback').addEventListener('change', async (e) => {
 
 $('today-label').textContent = todayLabel();
 $('fecha').value = todayISO();
+$('fecha').min = todayISO();
+$('fecha').max = todayISO();
 
 let sheetUrl = localStorage.getItem('reposicion-fungibles:sheet-url') || '';
 let sheetToken = localStorage.getItem('reposicion-fungibles:sheet-token') || '';
@@ -726,9 +729,12 @@ function validateForm(){
   const okCant = !isNaN(cant) && cant > 0;
   const loteFalta = selected && selected.lote && $('lote').value.trim().length === 0;
   const okLote = !loteFalta;
+  const fechaOk = $('fecha').value === todayISO();
   $('lote-warning').style.display = loteFalta ? 'block' : 'none';
-  $('add-btn').disabled = !(selected && okCant && okLote && activeUser);
+  $('fecha-warning').style.display = (!fechaOk && $('fecha').value) ? 'block' : 'none';
+  $('add-btn').disabled = !(selected && okCant && okLote && activeUser && fechaOk);
 }
+$('fecha').addEventListener('input', validateForm);
 $('lote').addEventListener('input', validateForm);
 $('fecha').addEventListener('input', validateForm);
 
@@ -845,7 +851,9 @@ function syncBadge(s){
 function entradasVisibles(){
   const items = entries.map((e, i) => ({ e, i }));
   const hoy = todayISO();
-  return items.filter(({e}) => e.fecha === hoy && e.turno === activeUser);
+  return items
+    .filter(({e}) => e.fecha === hoy && e.turno === activeUser)
+    .sort((a, b) => (b.e.createdAt || 0) - (a.e.createdAt || 0)); // más reciente primero
 }
 
 function renderLog(){
