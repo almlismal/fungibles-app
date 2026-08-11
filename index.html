@@ -1334,6 +1334,53 @@ $('clear-notes-btn').addEventListener('click', () => {
   showToast('Lista vaciada');
 });
 
+// ---- Captura global del escaneo de PDA (funciona sin tocar ningún casillero) ----
+// Una PDA "escribe" carácter a carácter muchísimo más rápido que una persona (unos pocos ms entre teclas).
+// Usamos esa velocidad para distinguir un escaneo de una escritura normal, y capturarlo desde cualquier sitio.
+let globalScanBuffer = '';
+let lastGlobalKeyTime = 0;
+let globalScanTimeout = null;
+
+function procesarEscaneoGlobal(codigo){
+  globalScanBuffer = '';
+  clearTimeout(globalScanTimeout);
+  $('cantidad').value = '';
+  $('lote').value = '';
+  const statusEl = $('scan-status');
+  statusEl.style.display = 'block';
+  aplicarCodigoBarras(codigo.trim(), (msg) => statusEl.textContent = msg);
+  setTimeout(() => statusEl.style.display = 'none', 4000);
+}
+
+document.addEventListener('keydown', (e) => {
+  const now = Date.now();
+  const gap = now - lastGlobalKeyTime;
+  lastGlobalKeyTime = now;
+
+  if(e.key === 'Enter' && globalScanBuffer.split(';').length >= 3){
+    e.preventDefault();
+    procesarEscaneoGlobal(globalScanBuffer);
+    return;
+  }
+
+  if(e.key.length !== 1) return; // solo caracteres normales (letras, números, símbolos)
+
+  if(gap > 40){
+    globalScanBuffer = ''; // demasiado lento para ser una PDA: es una persona escribiendo, se reinicia
+  } else {
+    e.preventDefault(); // ráfaga rápida: evita que se cuele en el campo que esté enfocado
+  }
+
+  globalScanBuffer += e.key;
+
+  if(globalScanBuffer.split(';').length >= 3){
+    clearTimeout(globalScanTimeout);
+    globalScanTimeout = setTimeout(() => {
+      if(globalScanBuffer.split(';').length >= 3) procesarEscaneoGlobal(globalScanBuffer);
+    }, 100);
+  }
+});
+
 loadEntries();
 actualizarCatalogo(true); // actualización silenciosa al abrir la app
 actualizarUsuarios();
