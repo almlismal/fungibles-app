@@ -156,6 +156,14 @@
   .stat .n{ font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--amber); }
   .stat .l{ font-size: 14px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 
+  .session-pill{
+    display:inline-block; font-size:13px; font-weight:600; color:var(--text);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:20px;
+    padding:8px 14px; cursor:pointer; text-decoration:none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .session-pill:active{ background:var(--panel); }
+
   footer{ text-align:center; color: var(--text-dim); font-size: 12px; padding: 20px 16px 0; }
 </style>
 </head>
@@ -206,16 +214,19 @@
   <div class="eyebrow">LIS · Almacén DHV Technology</div>
   <h1>Reposición de fungibles</h1>
   <div class="sub" id="today-label">—</div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);position:relative">
-    <div style="font-size:14px"><span style="color:var(--text-dim)">Sesión:</span> <b id="session-name" style="color:var(--amber)">—</b></div>
-    <div style="display:flex;gap:14px">
-      <u id="config-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer;display:none">configuración</u>
-      <u id="change-pin-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cambiar PIN</u>
-      <u id="logout-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cerrar sesión</u>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);position:relative;flex-wrap:wrap;gap:10px">
+    <div style="font-size:17px;display:flex;align-items:baseline;gap:6px">
+      <span style="color:var(--text-dim);font-size:13px;text-transform:uppercase;letter-spacing:0.04em">Sesión</span>
+      <b id="session-name" style="color:var(--amber);font-family:var(--sans);font-size:20px;letter-spacing:0.01em">—</b>
     </div>
-    <div id="config-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);overflow:hidden;z-index:40;min-width:180px">
-      <div class="config-menu-item" data-accion="nuevo-usuario" style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line)">➕ Añadir usuario nuevo</div>
-      <div class="config-menu-item" data-accion="cambiar-pin" style="padding:12px 16px;font-size:14px;cursor:pointer">🔑 Cambiar mi PIN</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <u id="config-btn" class="session-pill" style="display:none">⚙️ Configuración</u>
+      <u id="change-pin-btn" class="session-pill">🔑 Cambiar PIN</u>
+      <u id="logout-btn" class="session-pill" style="color:var(--red)">Cerrar sesión</u>
+    </div>
+    <div id="config-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.55);overflow:hidden;z-index:40;min-width:210px">
+      <div class="config-menu-item" data-accion="nuevo-usuario" style="padding:14px 18px;font-size:15px;cursor:pointer;border-bottom:1px solid var(--line)">➕ Añadir usuario nuevo</div>
+      <div class="config-menu-item" data-accion="cambiar-pin" style="padding:14px 18px;font-size:15px;cursor:pointer">🔑 Cambiar mi PIN</div>
     </div>
   </div>
 </header>
