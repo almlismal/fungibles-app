@@ -160,11 +160,59 @@
 </style>
 </head>
 <body>
+
+<div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:95;display:flex;flex-direction:column;padding:24px;padding-top:calc(30px + env(safe-area-inset-top));overflow-y:auto">
+  <div class="eyebrow">LIS · Almacén DHV Technology</div>
+  <h1 style="margin-bottom:4px">Iniciar sesión</h1>
+  <div class="sub" style="margin-bottom:20px">Selecciona tu nombre</div>
+
+  <div id="login-user-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
+  <button class="secondary" id="login-add-user-btn" style="margin-top:10px">+ Nuevo usuario (requiere admin)</button>
+
+  <div id="login-pin-panel" style="display:none;margin-top:20px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:6px">
+    <div id="login-pin-title" style="font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px"></div>
+    <label id="login-pin-label-1">PIN (4 dígitos)</label>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="login-pin-1" placeholder="••••">
+    <div id="login-pin-confirm-wrap" style="display:none;margin-top:12px">
+      <label id="login-pin-label-2">Confirma el PIN</label>
+      <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="login-pin-2" placeholder="••••">
+    </div>
+    <div id="login-pin-error" style="display:none;color:var(--red);font-size:13px;margin-top:10px;font-weight:600"></div>
+    <button class="primary" id="login-pin-submit" style="margin-top:14px">Entrar</button>
+    <button class="secondary" id="login-pin-cancel">Cancelar</button>
+    <div style="text-align:center;margin-top:14px">
+      <u id="login-forgot-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">¿Olvidaste tu PIN?</u>
+    </div>
+  </div>
+
+  <div id="login-admin-panel" style="display:none;margin-top:20px;padding:18px;background:var(--panel);border:1px solid var(--amber-dim);border-radius:6px">
+    <div style="font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px;color:var(--amber)" id="login-admin-title">Autorización de administrador</div>
+    <label>Admin</label>
+    <select id="login-admin-select" style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:16px"></select>
+    <label style="margin-top:12px">PIN del admin</label>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="login-admin-pin" placeholder="••••">
+    <div id="login-admin-newname-wrap" style="display:none;margin-top:12px">
+      <label>Nombre del nuevo usuario</label>
+      <input type="text" id="login-admin-newname" placeholder="Ej. LAURA">
+    </div>
+    <div id="login-admin-error" style="display:none;color:var(--red);font-size:13px;margin-top:10px;font-weight:600"></div>
+    <button class="primary" id="login-admin-submit" style="margin-top:14px">Confirmar</button>
+    <button class="secondary" id="login-admin-cancel">Cancelar</button>
+  </div>
+</div>
+
 <div class="tag-header"></div>
 <header>
   <div class="eyebrow">LIS · Almacén DHV Technology</div>
   <h1>Reposición de fungibles</h1>
   <div class="sub" id="today-label">—</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+    <div style="font-size:14px"><span style="color:var(--text-dim)">Sesión:</span> <b id="session-name" style="color:var(--amber)">—</b></div>
+    <div style="display:flex;gap:14px">
+      <u id="change-pin-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cambiar PIN</u>
+      <u id="logout-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cerrar sesión</u>
+    </div>
+  </div>
 </header>
 
 <main>
@@ -242,21 +290,6 @@
     <div class="field" style="margin-top:14px">
       <label>Fecha</label>
       <input type="date" id="fecha">
-    </div>
-
-    <div class="field">
-      <label>Operario</label>
-      <div id="user-chip" style="background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:6px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px">
-        <span id="user-chip-name" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Seleccionar usuario</span>
-        <span style="color:var(--text-dim);font-size: 15px;flex-shrink:0">cambiar</span>
-      </div>
-    </div>
-
-    <div id="user-picker-panel" style="display:none;margin-top:10px;padding:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px">
-      <div style="font-size: 14px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Selecciona tu usuario</div>
-      <div id="user-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
-      <input type="text" id="new-user-input" placeholder="¿No apareces en la lista? Escribe tu nombre">
-      <button class="secondary" id="add-user-btn" style="margin-top:8px">Añadir y continuar</button>
     </div>
 
     <div id="fecha-warning" style="display:none;color:var(--red);font-size:13px;font-weight:600;margin-bottom:8px;text-align:center">⚠ La fecha debe ser la de hoy</div>
@@ -712,7 +745,7 @@ searchInput.focus();
 document.addEventListener('visibilitychange', enfocarBuscadorParaPDA);
 
 // Tras tocar cualquier zona que no sea un campo de escritura real, devuelve el foco al buscador
-const CAMPOS_DE_ESCRITURA = ['cantidad', 'lote', 'new-user-input', 'quick-notes', 'sheet-url', 'sheet-token', 'hist-fecha'];
+const CAMPOS_DE_ESCRITURA = ['cantidad', 'lote', 'login-pin-1', 'login-pin-2', 'login-admin-pin', 'login-admin-newname', 'quick-notes', 'sheet-url', 'sheet-token', 'hist-fecha'];
 document.addEventListener('touchend', (e) => {
   const id = e.target && e.target.id;
   if(CAMPOS_DE_ESCRITURA.includes(id)) return; // se está escribiendo algo real, no robar el foco
@@ -1075,185 +1108,184 @@ $('export-btn').addEventListener('click', () => {
   showToast('Excel generado');
 });
 
-// ---- Usuario activo ----
-function renderUserChip(){
-  $('user-chip-name').textContent = activeUser || 'Seleccionar usuario';
-  $('user-chip').style.borderColor = activeUser ? 'var(--line)' : 'var(--amber-dim)';
-  validateForm();
-  renderLog();
+// ---- Login con PIN ----
+['login-pin-1', 'login-pin-2', 'login-admin-pin'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    $(id).value = $(id).value.replace(/\D/g, '').slice(0, 4);
+  });
+});
+
+function normalizarNombre(str){
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
 }
 
-function renderUserList(){
-  const box = $('user-list');
-  if(usuariosConocidos.length === 0){
-    box.innerHTML = '<div style="color:var(--text-dim);font-size: 14px">Aún no hay nadie en la lista — añádete abajo.</div>';
+let usuariosDetalle = []; // [{nombre, esAdmin, tienePin}]
+let flujoLogin = null; // {nombre, esCreacion}
+let flujoAdmin = null; // {modo: 'nuevo-usuario' | 'olvido-pin', nombreObjetivo}
+
+function esAdminActivo(){
+  const u = usuariosDetalle.find(u => u.nombre === activeUser);
+  return !!(u && u.esAdmin);
+}
+
+function renderSessionHeader(){
+  $('session-name').textContent = activeUser || '—';
+}
+
+function abrirLogin(){
+  $('login-overlay').style.display = 'flex';
+  $('login-pin-panel').style.display = 'none';
+  $('login-admin-panel').style.display = 'none';
+  renderLoginUserList();
+}
+function cerrarLogin(){
+  $('login-overlay').style.display = 'none';
+}
+
+function renderLoginUserList(){
+  const box = $('login-user-list');
+  if(usuariosDetalle.length === 0){
+    box.innerHTML = '<div style="color:var(--text-dim);font-size:14px">Cargando lista de usuarios…</div>';
     return;
   }
-  box.innerHTML = usuariosConocidos.map(nombre => `
-    <button type="button" class="user-option" data-nombre="${nombre}"
-      style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s ease, background 0.15s ease">
-      ${nombre}
+  box.innerHTML = usuariosDetalle.map(u => `
+    <button type="button" class="login-user-option" data-nombre="${u.nombre}"
+      style="background:var(--panel);border:1px solid ${u.esAdmin ? 'var(--amber-dim)' : 'var(--line)'};color:var(--text);padding:12px 16px;border-radius:6px;font-size:15px;cursor:pointer">
+      ${u.nombre}${u.esAdmin ? ' 🔒' : ''}
     </button>
-  `).join('') + '<div style="width:100%;font-size: 14px;color:var(--text-dim);margin-top:6px">Mantén pulsado un nombre para editarlo o eliminarlo</div>';
+  `).join('');
 }
 
-async function actualizarUsuarios(){
-  if(!sheetUrl) return;
+async function cargarUsuariosParaLogin(){
+  if(!sheetUrl){ renderLoginUserList(); return; }
   try{
     const url = sheetUrl + '?action=usuarios&token=' + encodeURIComponent(sheetToken);
     const res = await fetch(url);
-    if(!res.ok) return;
-    const nombres = await res.json();
-    if(Array.isArray(nombres)){
-      usuariosConocidos = nombres;
-      localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(nombres));
-      renderUserList();
+    const datos = await res.json();
+    if(Array.isArray(datos)){
+      usuariosDetalle = datos;
+      usuariosConocidos = datos.map(u => u.nombre);
+      localStorage.setItem('reposicion-fungibles:usuarios-detalle', JSON.stringify(datos));
+      renderLoginUserList();
       renderHistUsuarioOptions();
     }
   }catch(e){ /* sin conexión: se queda con la lista guardada */ }
 }
 
-$('user-chip').addEventListener('click', () => {
-  const abriendo = $('user-picker-panel').style.display === 'none';
-  $('user-picker-panel').style.display = abriendo ? 'block' : 'none';
-  renderUserList();
-  if(abriendo) actualizarUsuarios(); // trae la lista más reciente de la Sheet (por si otro móvil añadió a alguien)
-});
-
-// Toque normal: seleccionar. Mantener pulsado (~600ms): borrar.
-let userPressTimer = null;
-let userPressTriggered = false;
-
-function iniciarPulsacionLarga(nombre, x, y){
-  userPressTriggered = false;
-  userPressTimer = setTimeout(() => {
-    userPressTriggered = true;
-    mostrarMenuContextual(nombre, x, y);
-  }, 500);
-}
-function cancelarPulsacionLarga(){
-  clearTimeout(userPressTimer);
-}
-
-function mostrarMenuContextual(nombre, x, y){
-  cerrarMenuContextual();
-  const menu = document.createElement('div');
-  menu.id = 'user-context-menu';
-  menu.style.cssText = 'position:fixed;z-index:80;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);overflow:hidden;min-width:140px;';
-  menu.innerHTML = `
-    <div class="ctx-item" data-accion="editar" style="padding:12px 16px;font-size:14px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line)">✏️ Editar</div>
-    <div class="ctx-item" data-accion="eliminar" style="padding:12px 16px;font-size:14px;color:var(--red);cursor:pointer">🗑️ Eliminar</div>
-  `;
-  document.body.appendChild(menu);
-
-  // Posicionar dentro de la pantalla (evitar que se salga por los bordes)
-  const menuWidth = 150, menuHeight = 90;
-  const left = Math.min(x, window.innerWidth - menuWidth - 10);
-  const top = Math.min(y, window.innerHeight - menuHeight - 10);
-  menu.style.left = left + 'px';
-  menu.style.top = top + 'px';
-
-  menu.addEventListener('click', async (e) => {
-    const item = e.target.closest('.ctx-item');
-    if(!item) return;
-    cerrarMenuContextual();
-    if(item.dataset.accion === 'eliminar'){
-      await eliminarUsuario(nombre);
-    } else if(item.dataset.accion === 'editar'){
-      editarUsuario(nombre);
-    }
-  });
-
-  setTimeout(() => document.addEventListener('click', cerrarMenuContextualExterno), 0);
-}
-function cerrarMenuContextualExterno(e){
-  if(!e.target.closest('#user-context-menu')) cerrarMenuContextual();
-}
-function cerrarMenuContextual(){
-  const existente = document.getElementById('user-context-menu');
-  if(existente) existente.remove();
-  document.removeEventListener('click', cerrarMenuContextualExterno);
-}
-
-async function eliminarUsuario(nombre){
-  const confirmar = confirm('¿Eliminar a "' + nombre + '" de la lista de usuarios?\n\nSus registros anteriores no se borran, solo deja de aparecer como opción.');
-  if(!confirmar) return;
-
-  usuariosConocidos = usuariosConocidos.filter(n => n !== nombre);
-  localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
-  renderUserList();
-  renderHistUsuarioOptions();
-  if(activeUser === nombre){
-    activeUser = '';
-    localStorage.removeItem('reposicion-fungibles:usuario-activo');
-    renderUserChip();
-  }
-  if(sheetUrl){
-    try{
-      await fetch(sheetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'delete-usuario', nombre: nombre, token: sheetToken })
-      });
-    }catch(err){ /* se queda borrado local igualmente */ }
-  }
-  showToast('Usuario eliminado');
-}
-
-function editarUsuario(nombreActual){
-  const nuevo = prompt('Editar nombre:', nombreActual);
-  if(nuevo === null) return; // canceló
-  const nuevoLimpio = nuevo.trim().toUpperCase();
-  if(!nuevoLimpio || nuevoLimpio === nombreActual) return;
-
-  renombrarUsuario(nombreActual, nuevoLimpio);
-}
-
-async function renombrarUsuario(viejo, nuevo){
-  usuariosConocidos = usuariosConocidos.map(n => n === viejo ? nuevo : n);
-  localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
-  renderUserList();
-  renderHistUsuarioOptions();
-  if(activeUser === viejo){
-    activeUser = nuevo;
-    localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
-    renderUserChip();
-  }
-  if(sheetUrl){
-    try{
-      await fetch(sheetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'rename-usuario', nombreViejo: viejo, nombreNuevo: nuevo, token: sheetToken })
-      });
-    }catch(err){ /* se queda cambiado local igualmente */ }
-  }
-  showToast('Nombre actualizado');
-}
-
-$('user-list').addEventListener('mousedown', (e) => {
-  const btn = e.target.closest('.user-option');
-  if(btn) iniciarPulsacionLarga(btn.dataset.nombre, e.clientX, e.clientY);
-});
-$('user-list').addEventListener('touchstart', (e) => {
-  const btn = e.target.closest('.user-option');
-  if(btn){
-    const t = e.touches[0];
-    iniciarPulsacionLarga(btn.dataset.nombre, t.clientX, t.clientY);
-  }
-}, { passive: true });
-['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => {
-  $('user-list').addEventListener(evt, cancelarPulsacionLarga);
-});
-
-$('user-list').addEventListener('click', (e) => {
-  if(userPressTriggered){ userPressTriggered = false; return; } // ya se gestionó con el menú contextual
-  const btn = e.target.closest('.user-option');
+// --- Paso 2: PIN (crear o verificar) ---
+$('login-user-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('.login-user-option');
   if(!btn) return;
-  activeUser = btn.dataset.nombre;
+  const u = usuariosDetalle.find(x => x.nombre === btn.dataset.nombre);
+  if(!u) return;
+  flujoLogin = { nombre: u.nombre, esCreacion: !u.tienePin };
+  $('login-pin-title').textContent = flujoLogin.esCreacion ? 'Crea tu PIN — ' + u.nombre : 'Ingresa tu PIN — ' + u.nombre;
+  $('login-pin-label-1').textContent = 'PIN (4 dígitos)';
+  $('login-pin-label-2').textContent = 'Confirma el PIN';
+  $('login-pin-confirm-wrap').style.display = flujoLogin.esCreacion ? 'block' : 'none';
+  $('login-pin-1').value = '';
+  $('login-pin-2').value = '';
+  $('login-pin-error').style.display = 'none';
+  $('login-pin-panel').style.display = 'block';
+  $('login-admin-panel').style.display = 'none';
+  setTimeout(() => $('login-pin-1').focus(), 50);
+});
+
+$('login-pin-cancel').addEventListener('click', () => {
+  $('login-pin-panel').style.display = 'none';
+  if(flujoLogin && flujoLogin.cambiando){
+    $('login-user-list').style.display = 'flex';
+    if(activeUser) cerrarLogin(); // ya había sesión, no forzar login de nuevo
+  }
+});
+
+$('login-pin-submit').addEventListener('click', async () => {
+  const pin1 = $('login-pin-1').value.trim();
+  const errEl = $('login-pin-error');
+  errEl.style.display = 'none';
+
+  if(!/^\d{4}$/.test(pin1)){ errEl.textContent = 'El PIN debe tener 4 números'; errEl.style.display = 'block'; return; }
+  if(!sheetUrl){ errEl.textContent = 'Conecta primero la Google Sheet'; errEl.style.display = 'block'; return; }
+
+  // --- Cambiar mi PIN (ya logueado) ---
+  if(flujoLogin.cambiando){
+    const pinNuevo = $('login-pin-2').value.trim();
+    if(!/^\d{4}$/.test(pinNuevo)){ errEl.textContent = 'El PIN nuevo debe tener 4 números'; errEl.style.display = 'block'; return; }
+    try{
+      const res = await fetch(sheetUrl, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'cambiar-pin', nombre: flujoLogin.nombre, pinActual: pin1, pinNuevo: pinNuevo, token: sheetToken })
+      });
+      const body = await res.json().catch(() => null);
+      if(body && body.status === 'ok'){ cerrarLogin(); $('login-user-list').style.display = 'flex'; showToast('PIN actualizado'); }
+      else { errEl.textContent = 'PIN actual incorrecto'; errEl.style.display = 'block'; }
+    }catch(err){ errEl.textContent = 'Sin conexión, inténtalo de nuevo'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // --- Crear PIN por primera vez ---
+  if(flujoLogin.esCreacion){
+    const pin2 = $('login-pin-2').value.trim();
+    if(pin1 !== pin2){ errEl.textContent = 'Los dos PIN no coinciden'; errEl.style.display = 'block'; return; }
+    try{
+      const res = await fetch(sheetUrl, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'crear-pin', nombre: flujoLogin.nombre, pin: pin1, token: sheetToken })
+      });
+      const body = await res.json().catch(() => null);
+      if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre); }
+      else { errEl.textContent = 'No se pudo crear el PIN (' + (body ? body.status : 'sin conexión') + ')'; errEl.style.display = 'block'; }
+    }catch(err){ errEl.textContent = 'Sin conexión, inténtalo de nuevo'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // --- Verificar PIN existente ---
+  try{
+    const res = await fetch(sheetUrl, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'verificar-pin', nombre: flujoLogin.nombre, pin: pin1, token: sheetToken })
+    });
+    const body = await res.json().catch(() => null);
+    if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre); }
+    else { errEl.textContent = 'PIN incorrecto'; errEl.style.display = 'block'; }
+  }catch(err){ errEl.textContent = 'Sin conexión, inténtalo de nuevo'; errEl.style.display = 'block'; }
+});
+
+function iniciarSesionComo(nombre){
+  activeUser = nombre;
   localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
-  $('user-picker-panel').style.display = 'none';
-  renderUserChip();
+  localStorage.setItem('reposicion-fungibles:login-desde', String(Date.now()));
+  programarCierreAutomatico();
+  renderSessionHeader();
+  renderHistUsuarioOptions();
+  validateForm();
+  renderLog();
+  cerrarLogin();
+}
+
+$('logout-btn').addEventListener('click', () => {
+  activeUser = '';
+  localStorage.removeItem('reposicion-fungibles:usuario-activo');
+  localStorage.removeItem('reposicion-fungibles:login-desde');
+  renderSessionHeader();
+  abrirLogin();
+});
+
+// --- Cambiar mi propio PIN (ya logueado) ---
+$('change-pin-btn').addEventListener('click', () => {
+  flujoLogin = { nombre: activeUser, esCreacion: false, cambiando: true };
+  $('login-pin-title').textContent = 'Cambiar PIN — ' + activeUser;
+  $('login-pin-label-1').textContent = 'PIN actual';
+  $('login-pin-label-2').textContent = 'PIN nuevo';
+  $('login-pin-confirm-wrap').style.display = 'block';
+  $('login-pin-1').value = '';
+  $('login-pin-2').value = '';
+  $('login-pin-error').style.display = 'none';
+  $('login-overlay').style.display = 'flex';
+  $('login-user-list').style.display = 'none';
+  $('login-pin-panel').style.display = 'block';
+  $('login-admin-panel').style.display = 'none';
+  setTimeout(() => $('login-pin-1').focus(), 50);
 });
 
 $('no-cat-cancel-btn').addEventListener('click', () => {
@@ -1296,42 +1328,144 @@ $('no-cat-confirm-btn').addEventListener('click', async () => {
   }
 });
 
-$('add-user-btn').addEventListener('click', async () => {
-  const nombre = $('new-user-input').value.trim().toUpperCase();
-  if(!nombre) return;
 
-  if(!usuariosConocidos.some(n => n.toUpperCase() === nombre)){
-    usuariosConocidos.push(nombre);
-    localStorage.setItem('reposicion-fungibles:usuarios', JSON.stringify(usuariosConocidos));
-  }
-  activeUser = nombre;
-  localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
-  $('new-user-input').value = '';
-  $('user-picker-panel').style.display = 'none';
-  renderUserChip();
-  renderHistUsuarioOptions();
+// --- Olvidé mi PIN (requiere admin) ---
+$('login-forgot-btn').addEventListener('click', () => {
+  flujoAdmin = { modo: 'olvido-pin', nombreObjetivo: flujoLogin.nombre };
+  abrirPanelAdmin('Autorizar reinicio de PIN de ' + flujoLogin.nombre);
+});
 
-  if(sheetUrl){
+// --- Nuevo usuario (requiere admin) ---
+$('login-add-user-btn').addEventListener('click', () => {
+  flujoAdmin = { modo: 'nuevo-usuario' };
+  abrirPanelAdmin('Autorizar alta de usuario nuevo');
+  $('login-admin-newname-wrap').style.display = 'block';
+});
+
+function abrirPanelAdmin(titulo){
+  $('login-admin-title').textContent = titulo;
+  $('login-admin-select').innerHTML = usuariosDetalle.filter(u => u.esAdmin)
+    .map(u => `<option value="${u.nombre}">${u.nombre}</option>`).join('');
+  $('login-admin-pin').value = '';
+  $('login-admin-newname').value = '';
+  $('login-admin-newname-wrap').style.display = 'none';
+  $('login-admin-error').style.display = 'none';
+  $('login-pin-panel').style.display = 'none';
+  $('login-admin-panel').style.display = 'block';
+}
+
+$('login-admin-cancel').addEventListener('click', () => {
+  $('login-admin-panel').style.display = 'none';
+});
+
+$('login-admin-submit').addEventListener('click', async () => {
+  const nombreAdmin = $('login-admin-select').value;
+  const pinAdmin = $('login-admin-pin').value.trim();
+  const errEl = $('login-admin-error');
+  errEl.style.display = 'none';
+
+  if(!/^\d{4}$/.test(pinAdmin)){ errEl.textContent = 'PIN de admin inválido'; errEl.style.display = 'block'; return; }
+  if(!sheetUrl){ errEl.textContent = 'Conecta primero la Google Sheet'; errEl.style.display = 'block'; return; }
+
+  if(flujoAdmin.modo === 'nuevo-usuario'){
+    const nuevoNombre = normalizarNombre($('login-admin-newname').value);
+    if(!nuevoNombre){ errEl.textContent = 'Escribe un nombre'; errEl.style.display = 'block'; return; }
     try{
       const res = await fetch(sheetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'add-usuario', nombre: nombre, token: sheetToken })
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'add-usuario', nombre: nuevoNombre, nombreAdmin: nombreAdmin, pinAdmin: pinAdmin, token: sheetToken })
       });
       const body = await res.json().catch(() => null);
-      if(!body || body.status !== 'ok'){
-        showToast('⚠ No se compartió con los demás dispositivos — revisa la clave en Conectar Sheets');
+      if(body && body.status === 'ok'){
+        $('login-admin-panel').style.display = 'none';
+        showToast('Usuario añadido');
+        await cargarUsuariosParaLogin();
+      } else {
+        errEl.textContent = body && body.status === 'admin-invalido' ? 'PIN de admin incorrecto' : 'No se pudo añadir';
+        errEl.style.display = 'block';
       }
-    }catch(err){
-      showToast('⚠ Sin conexión: solo se guardó en este dispositivo por ahora');
-    }
-  } else {
-    showToast('⚠ No conectado a Sheets: solo se guardó en este dispositivo');
+    }catch(err){ errEl.textContent = 'Sin conexión'; errEl.style.display = 'block'; }
+  }
+
+  if(flujoAdmin.modo === 'olvido-pin'){
+    try{
+      const res = await fetch(sheetUrl, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'resetear-pin', nombreObjetivo: flujoAdmin.nombreObjetivo, nombreAdmin: nombreAdmin, pinAdmin: pinAdmin, token: sheetToken })
+      });
+      const body = await res.json().catch(() => null);
+      if(body && body.status === 'ok'){
+        $('login-admin-panel').style.display = 'none';
+        showToast('PIN reiniciado — ahora puedes crear uno nuevo');
+        await cargarUsuariosParaLogin();
+        // reabre el paso de crear PIN para ese usuario
+        const u = usuariosDetalle.find(x => x.nombre === flujoAdmin.nombreObjetivo);
+        if(u){
+          flujoLogin = { nombre: u.nombre, esCreacion: true };
+          $('login-pin-title').textContent = 'Crea tu PIN — ' + u.nombre;
+          $('login-pin-label-1').textContent = 'PIN (4 dígitos)';
+          $('login-pin-label-2').textContent = 'Confirma el PIN';
+          $('login-pin-confirm-wrap').style.display = 'block';
+          $('login-pin-1').value = ''; $('login-pin-2').value = '';
+          $('login-pin-panel').style.display = 'block';
+        }
+      } else {
+        errEl.textContent = body && body.status === 'admin-invalido' ? 'PIN de admin incorrecto' : 'No se pudo reiniciar';
+        errEl.style.display = 'block';
+      }
+    }catch(err){ errEl.textContent = 'Sin conexión'; errEl.style.display = 'block'; }
   }
 });
 
-renderUserChip();
-renderUserList();
+// --- Cierre automático de sesión (solo DELIA y MARIA JOSE, a las 14:00 y 22:00) ---
+let cierreAutoInterval = null;
+
+function siguienteLimite(desde){
+  const d = new Date(desde);
+  const limites = [14, 22];
+  for(const h of limites){
+    const candidato = new Date(d); candidato.setHours(h, 0, 0, 0);
+    if(candidato > d) return candidato;
+  }
+  const manana = new Date(d); manana.setDate(manana.getDate() + 1); manana.setHours(14, 0, 0, 0);
+  return manana;
+}
+
+function programarCierreAutomatico(){
+  clearInterval(cierreAutoInterval);
+  if(activeUser !== 'DELIA' && activeUser !== 'MARIA JOSE') return;
+
+  const desdeStr = localStorage.getItem('reposicion-fungibles:login-desde');
+  const desde = desdeStr ? parseInt(desdeStr, 10) : Date.now();
+  const limite = siguienteLimite(desde);
+
+  cierreAutoInterval = setInterval(() => {
+    if(Date.now() >= limite.getTime()){
+      clearInterval(cierreAutoInterval);
+      activeUser = '';
+      localStorage.removeItem('reposicion-fungibles:usuario-activo');
+      localStorage.removeItem('reposicion-fungibles:login-desde');
+      renderSessionHeader();
+      showToast('Sesión cerrada — cambio de turno');
+      abrirLogin();
+    }
+  }, 30000);
+}
+
+// --- Inicialización del login al abrir la app ---
+try{
+  const guardado = localStorage.getItem('reposicion-fungibles:usuarios-detalle');
+  if(guardado) usuariosDetalle = JSON.parse(guardado);
+}catch(e){}
+
+if(activeUser){
+  renderSessionHeader();
+  cerrarLogin();
+  programarCierreAutomatico();
+} else {
+  abrirLogin();
+}
+cargarUsuariosParaLogin();
 
 // ---- Historial de solo lectura (consulta directa a la Sheet, todos los usuarios) ----
 function renderHistUsuarioOptions(){
