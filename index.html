@@ -622,7 +622,14 @@ const resultBox = $('pn-result');
 
 function renderResults(items){
   if(items.length === 0){
-    resultBox.innerHTML = '<div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>';
+    const q = searchInput.value.trim();
+    resultBox.innerHTML = `
+      <div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>
+      <div class="pn-item pn-no-catalogado" style="cursor:pointer">
+        <div class="pn-code" style="color:var(--amber)">+ Registrar "${q}" igual</div>
+        <div class="pn-desc">No está en el catálogo — se avisará a María para que lo añada</div>
+      </div>
+    `;
     resultBox.classList.add('open');
     return;
   }
@@ -699,6 +706,12 @@ document.addEventListener('click', (e) => {
   }
 });
 resultBox.addEventListener('click', (e) => {
+  if(e.target.closest('.pn-no-catalogado')){
+    const q = searchInput.value.trim().toUpperCase();
+    if(!q) return;
+    selectItem({ pn: q, desc: '', mult: 1, lote: false, noCatalogado: true });
+    return;
+  }
   const item = e.target.closest('.pn-item');
   if(!item || item.dataset.idx === undefined) return;
   const idx = parseInt(item.dataset.idx, 10);
@@ -708,7 +721,7 @@ resultBox.addEventListener('click', (e) => {
 
 function selectItem(it){
   selected = it;
-  $('chip-pn').textContent = it.pn;
+  $('chip-pn').textContent = it.pn + (it.noCatalogado ? ' (no catalogado)' : '');
   $('chip-pn').style.color = it.lote ? 'var(--amber)' : 'var(--text)';
   $('chip-desc').textContent = it.desc || '';
   $('chip-wrap').style.borderColor = it.lote ? 'var(--amber)' : 'var(--amber-dim)';
@@ -826,6 +839,7 @@ $('add-btn').addEventListener('click', async () => {
   const total = cant * selected.mult;
 
   let entry;
+  const esNoCatalogado = !isEdit && !!selected.noCatalogado;
 
   if(isEdit){
     entry = entries[editingIndex];
@@ -848,7 +862,7 @@ $('add-btn').addEventListener('click', async () => {
   cancelEdit(); // limpia el formulario y sale del modo edición
 
   renderLog();
-  showToast(wasEdit ? 'Cambios guardados' : 'Reposición registrada');
+  showToast(wasEdit ? 'Cambios guardados' : (esNoCatalogado ? 'Registrado — se avisará a María' : 'Reposición registrada'));
 
   if(sheetUrl){
     const result = await syncToSheet(entry);
@@ -856,6 +870,20 @@ $('add-btn').addEventListener('click', async () => {
     await saveEntries();
     renderLog();
     if(entry.sync === 'error') showToast('⚠ No se pudo sincronizar con Sheets');
+
+    if(esNoCatalogado){
+      try{
+        await fetch(sheetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'avisar-articulo-nuevo',
+            pn: entry.pn, cantidad: entry.cantidad, turno: entry.turno, fecha: entry.fecha,
+            token: sheetToken
+          })
+        });
+      }catch(err){ /* el registro ya se guardó igual; el aviso es secundario */ }
+    }
   }
 
   validateForm();
