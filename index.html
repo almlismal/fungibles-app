@@ -206,11 +206,16 @@
   <div class="eyebrow">LIS · Almacén DHV Technology</div>
   <h1>Reposición de fungibles</h1>
   <div class="sub" id="today-label">—</div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);position:relative">
     <div style="font-size:14px"><span style="color:var(--text-dim)">Sesión:</span> <b id="session-name" style="color:var(--amber)">—</b></div>
     <div style="display:flex;gap:14px">
+      <u id="config-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer;display:none">configuración</u>
       <u id="change-pin-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cambiar PIN</u>
       <u id="logout-btn" style="font-size:13px;color:var(--text-dim);cursor:pointer">cerrar sesión</u>
+    </div>
+    <div id="config-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);overflow:hidden;z-index:40;min-width:180px">
+      <div class="config-menu-item" data-accion="nuevo-usuario" style="padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line)">➕ Añadir usuario nuevo</div>
+      <div class="config-menu-item" data-accion="cambiar-pin" style="padding:12px 16px;font-size:14px;cursor:pointer">🔑 Cambiar mi PIN</div>
     </div>
   </div>
 </header>
@@ -1142,6 +1147,9 @@ function esAdminActivo(){
 
 function renderSessionHeader(){
   $('session-name').textContent = (activeUser || '—') + (esAdminActivo() ? ' 🔒' : '');
+  const admin = esAdminActivo();
+  $('config-btn').style.display = admin ? 'inline' : 'none';
+  $('change-pin-btn').style.display = admin ? 'none' : 'inline';
 }
 
 function abrirLogin(){
@@ -1169,20 +1177,32 @@ function renderLoginUserList(){
 }
 
 async function cargarUsuariosParaLogin(){
-  if(!sheetUrl){ renderLoginUserList(); return; }
+  if(!sheetUrl){
+    $('login-user-list').innerHTML = '<div style="color:var(--red);font-size:14px">⚠ No hay conexión a Google Sheets configurada</div>';
+    return;
+  }
+  $('login-user-list').innerHTML = '<div style="color:var(--text-dim);font-size:14px">Cargando lista de usuarios…</div>';
   try{
     const url = sheetUrl + '?action=usuarios&token=' + encodeURIComponent(sheetToken);
     const res = await fetch(url);
     const datos = await res.json();
-    if(Array.isArray(datos)){
-      usuariosDetalle = datos;
-      usuariosConocidos = datos.map(u => u.nombre);
-      localStorage.setItem('reposicion-fungibles:usuarios-detalle', JSON.stringify(datos));
-      renderLoginUserList();
-      renderHistUsuarioOptions();
-      renderAdminCard();
+
+    if(!Array.isArray(datos)){
+      $('login-user-list').innerHTML = '<div style="color:var(--red);font-size:14px">⚠ El script respondió: ' +
+        (datos && datos.status ? datos.status : 'error desconocido') +
+        ' — revisa que el script esté actualizado. <u style="cursor:pointer" onclick="cargarUsuariosParaLogin()">Reintentar</u></div>';
+      return;
     }
-  }catch(e){ /* sin conexión: se queda con la lista guardada */ }
+    // Compatible con el formato antiguo (lista de nombres sueltos) y el nuevo (objetos con rol/PIN)
+    usuariosDetalle = datos.map(u => typeof u === 'string' ? { nombre: u, esAdmin: false, tienePin: false } : u);
+    usuariosConocidos = usuariosDetalle.map(u => u.nombre);
+    localStorage.setItem('reposicion-fungibles:usuarios-detalle', JSON.stringify(usuariosDetalle));
+    renderLoginUserList();
+    renderHistUsuarioOptions();
+    renderAdminCard();
+  }catch(e){
+    $('login-user-list').innerHTML = '<div style="color:var(--red);font-size:14px">⚠ Sin conexión. <u style="cursor:pointer" onclick="cargarUsuariosParaLogin()">Reintentar</u></div>';
+  }
 }
 
 // --- Paso 2: PIN (crear o verificar) ---
@@ -1289,6 +1309,38 @@ $('logout-btn').addEventListener('click', () => {
 });
 
 // --- Cambiar mi propio PIN (ya logueado) ---
+// --- Menú "Configuración" (solo admins): añadir usuario / cambiar PIN ---
+$('config-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = $('config-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+});
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#config-menu') && !e.target.closest('#config-btn')){
+    $('config-menu').style.display = 'none';
+  }
+});
+$('config-menu').addEventListener('click', (e) => {
+  const item = e.target.closest('.config-menu-item');
+  if(!item) return;
+  $('config-menu').style.display = 'none';
+
+  if(item.dataset.accion === 'nuevo-usuario'){
+    flujoAdmin = { modo: 'nuevo-usuario' };
+    $('login-overlay').style.display = 'flex';
+    $('login-user-list').style.display = 'none';
+    abrirPanelAdmin('Añadir usuario nuevo');
+    $('login-admin-newname-wrap').style.display = 'block';
+    // Como ya sabemos quién eres (admin logueado), se preselecciona tu usuario y solo falta el PIN
+    $('login-admin-select').innerHTML = `<option value="${activeUser}">${activeUser}</option>`;
+    if(sessionPin) $('login-admin-pin').value = sessionPin;
+  }
+
+  if(item.dataset.accion === 'cambiar-pin'){
+    $('change-pin-btn').click(); // reutiliza el mismo flujo que ya existe
+  }
+});
+
 $('change-pin-btn').addEventListener('click', () => {
   flujoLogin = { nombre: activeUser, esCreacion: false, cambiando: true };
   $('login-pin-title').textContent = 'Cambiar PIN — ' + activeUser;
@@ -1373,6 +1425,8 @@ function abrirPanelAdmin(titulo){
 
 $('login-admin-cancel').addEventListener('click', () => {
   $('login-admin-panel').style.display = 'none';
+  $('login-user-list').style.display = 'flex';
+  if(activeUser){ cerrarLogin(); } // ya había sesión (se abrió desde "Configuración"), no forzar login
 });
 
 $('login-admin-submit').addEventListener('click', async () => {
