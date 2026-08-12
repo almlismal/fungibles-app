@@ -332,6 +332,17 @@
           </div>
   </div>
 
+  <div class="card" id="admin-card" style="display:none">
+    <div class="card-title">🔒 Administración</div>
+    <label>Añadir usuario nuevo</label>
+    <div class="row2">
+      <input type="text" id="admin-newname" placeholder="Ej. LAURA">
+      <button class="primary" id="admin-add-btn" style="padding:12px">Añadir</button>
+    </div>
+    <label style="margin-top:16px">Usuarios existentes</label>
+    <div id="admin-user-list" style="margin-top:8px"></div>
+  </div>
+
   <div class="card">
     <div class="card-title" style="cursor:pointer" id="toggle-notes-card">📝 Lista rápida (antes de reponer)</div>
     <div id="notes-body" style="display:none;margin-top:12px">
@@ -1122,6 +1133,7 @@ function normalizarNombre(str){
 let usuariosDetalle = []; // [{nombre, esAdmin, tienePin}]
 let flujoLogin = null; // {nombre, esCreacion}
 let flujoAdmin = null; // {modo: 'nuevo-usuario' | 'olvido-pin', nombreObjetivo}
+let sessionPin = null; // PIN del usuario logueado, solo en memoria (nunca en disco)
 
 function esAdminActivo(){
   const u = usuariosDetalle.find(u => u.nombre === activeUser);
@@ -1129,7 +1141,7 @@ function esAdminActivo(){
 }
 
 function renderSessionHeader(){
-  $('session-name').textContent = activeUser || '—';
+  $('session-name').textContent = (activeUser || '—') + (esAdminActivo() ? ' 🔒' : '');
 }
 
 function abrirLogin(){
@@ -1168,6 +1180,7 @@ async function cargarUsuariosParaLogin(){
       localStorage.setItem('reposicion-fungibles:usuarios-detalle', JSON.stringify(datos));
       renderLoginUserList();
       renderHistUsuarioOptions();
+      renderAdminCard();
     }
   }catch(e){ /* sin conexión: se queda con la lista guardada */ }
 }
@@ -1233,7 +1246,7 @@ $('login-pin-submit').addEventListener('click', async () => {
         body: JSON.stringify({ action: 'crear-pin', nombre: flujoLogin.nombre, pin: pin1, token: sheetToken })
       });
       const body = await res.json().catch(() => null);
-      if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre); }
+      if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre, pin1); }
       else { errEl.textContent = 'No se pudo crear el PIN (' + (body ? body.status : 'sin conexión') + ')'; errEl.style.display = 'block'; }
     }catch(err){ errEl.textContent = 'Sin conexión, inténtalo de nuevo'; errEl.style.display = 'block'; }
     return;
@@ -1246,18 +1259,20 @@ $('login-pin-submit').addEventListener('click', async () => {
       body: JSON.stringify({ action: 'verificar-pin', nombre: flujoLogin.nombre, pin: pin1, token: sheetToken })
     });
     const body = await res.json().catch(() => null);
-    if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre); }
+    if(body && body.status === 'ok'){ iniciarSesionComo(flujoLogin.nombre, pin1); }
     else { errEl.textContent = 'PIN incorrecto'; errEl.style.display = 'block'; }
   }catch(err){ errEl.textContent = 'Sin conexión, inténtalo de nuevo'; errEl.style.display = 'block'; }
 });
 
-function iniciarSesionComo(nombre){
+function iniciarSesionComo(nombre, pin){
   activeUser = nombre;
+  sessionPin = pin; // solo en memoria, nunca se guarda — se pierde si cierras la app
   localStorage.setItem('reposicion-fungibles:usuario-activo', activeUser);
   localStorage.setItem('reposicion-fungibles:login-desde', String(Date.now()));
   programarCierreAutomatico();
   renderSessionHeader();
   renderHistUsuarioOptions();
+  renderAdminCard();
   validateForm();
   renderLog();
   cerrarLogin();
@@ -1265,9 +1280,11 @@ function iniciarSesionComo(nombre){
 
 $('logout-btn').addEventListener('click', () => {
   activeUser = '';
+  sessionPin = null;
   localStorage.removeItem('reposicion-fungibles:usuario-activo');
   localStorage.removeItem('reposicion-fungibles:login-desde');
   renderSessionHeader();
+  renderAdminCard();
   abrirLogin();
 });
 
@@ -1443,9 +1460,11 @@ function programarCierreAutomatico(){
     if(Date.now() >= limite.getTime()){
       clearInterval(cierreAutoInterval);
       activeUser = '';
+      sessionPin = null;
       localStorage.removeItem('reposicion-fungibles:usuario-activo');
       localStorage.removeItem('reposicion-fungibles:login-desde');
       renderSessionHeader();
+      renderAdminCard();
       showToast('Sesión cerrada — cambio de turno');
       abrirLogin();
     }
@@ -1466,6 +1485,85 @@ if(activeUser){
   abrirLogin();
 }
 cargarUsuariosParaLogin();
+
+// ---- Tarjeta de Administración (solo visible para admins) ----
+async function obtenerSessionPin(){
+  if(sessionPin) return sessionPin;
+  const intento = prompt('Vuelve a confirmar tu PIN (' + activeUser + '):');
+  if(!intento || !/^\d{4}$/.test(intento)) return null;
+  try{
+    const res = await fetch(sheetUrl, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'verificar-pin', nombre: activeUser, pin: intento, token: sheetToken })
+    });
+    const body = await res.json().catch(() => null);
+    if(body && body.status === 'ok'){ sessionPin = intento; return intento; }
+    showToast('PIN incorrecto');
+    return null;
+  }catch(e){ showToast('Sin conexión'); return null; }
+}
+
+function renderAdminCard(){
+  const card = $('admin-card');
+  if(!esAdminActivo()){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const box = $('admin-user-list');
+  box.innerHTML = usuariosDetalle.map(u => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)">
+      <span>${u.nombre}${u.esAdmin ? ' 🔒' : ''}${!u.tienePin ? ' <span style="color:var(--text-dim);font-size:12px">(sin PIN aún)</span>' : ''}</span>
+      <button type="button" class="admin-del-user" data-nombre="${u.nombre}" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer">✕</button>
+    </div>
+  `).join('');
+}
+
+$('admin-add-btn').addEventListener('click', async () => {
+  const nombre = normalizarNombre($('admin-newname').value);
+  if(!nombre){ showToast('Escribe un nombre'); return; }
+  const pin = await obtenerSessionPin();
+  if(!pin) return;
+  try{
+    const res = await fetch(sheetUrl, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'add-usuario', nombre: nombre, nombreAdmin: activeUser, pinAdmin: pin, token: sheetToken })
+    });
+    const body = await res.json().catch(() => null);
+    if(body && body.status === 'ok'){
+      $('admin-newname').value = '';
+      showToast('Usuario añadido');
+      await cargarUsuariosParaLogin();
+      renderAdminCard();
+    } else {
+      showToast(body && body.status === 'admin-invalido' ? 'Tu PIN no es válido como admin' : 'No se pudo añadir');
+    }
+  }catch(e){ showToast('Sin conexión'); }
+});
+
+$('admin-user-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.admin-del-user');
+  if(!btn) return;
+  const nombre = btn.dataset.nombre;
+  if(nombre === activeUser){ showToast('No puedes borrarte a ti mismo'); return; }
+  if(!confirm('¿Eliminar a "' + nombre + '" de la lista? Sus registros anteriores no se borran.')) return;
+
+  const pin = await obtenerSessionPin();
+  if(!pin) return;
+  try{
+    const res = await fetch(sheetUrl, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete-usuario', nombre: nombre, nombreAdmin: activeUser, pinAdmin: pin, token: sheetToken })
+    });
+    const body = await res.json().catch(() => null);
+    if(body && body.status === 'ok'){
+      showToast('Usuario eliminado');
+      await cargarUsuariosParaLogin();
+      renderAdminCard();
+    } else {
+      showToast('No se pudo eliminar');
+    }
+  }catch(e){ showToast('Sin conexión'); }
+});
+
+renderAdminCard();
 
 // ---- Historial de solo lectura (consulta directa a la Sheet, todos los usuarios) ----
 function renderHistUsuarioOptions(){
