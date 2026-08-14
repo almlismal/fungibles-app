@@ -255,7 +255,10 @@
       <canvas id="scan-canvas" style="display:none;"></canvas>
       <div style="position:absolute;top:0;left:0;right:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));background:linear-gradient(#000000cc, transparent);display:flex;justify-content:space-between;align-items:center;">
         <div id="scan-live-status" style="color:#fff;font-family:var(--sans);font-size:14px;text-transform:uppercase;letter-spacing:0.04em;">Buscando código…</div>
-        <button id="scan-cancel-btn" style="background:none;border:1px solid #666;color:#fff;border-radius:50%;width:34px;height:34px;font-size:16px;">✕</button>
+        <div style="display:flex;gap:10px">
+          <button id="scan-torch-btn" style="display:none;background:none;border:1px solid #666;color:#fff;border-radius:50%;width:34px;height:34px;font-size:16px;">🔦</button>
+          <button id="scan-cancel-btn" style="background:none;border:1px solid #666;color:#fff;border-radius:50%;width:34px;height:34px;font-size:16px;">✕</button>
+        </div>
       </div>
       <div style="position:absolute;left:10%;right:10%;top:35%;bottom:35%;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.35);"></div>
       <div style="position:absolute;left:0;right:0;bottom:0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));background:linear-gradient(transparent, #000000cc);text-align:center;">
@@ -352,6 +355,13 @@
     <div class="card-title" style="cursor:pointer" id="toggle-notes-card">📝 Lista rápida (antes de reponer)</div>
     <div id="notes-body" style="display:none;margin-top:12px">
       <div class="hint" style="margin-bottom:10px">Solo para apuntar lo que necesitas ir a buscar. No se sincroniza ni cuenta como registro — bórrala cuando termines.</div>
+
+      <div class="field" style="position:relative">
+        <input type="text" id="notes-search" placeholder="Buscar artículo para añadir a la lista..." autocomplete="off">
+        <div class="pn-result" id="notes-search-result"></div>
+      </div>
+      <div id="notes-bubbles" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+
       <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
         style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
       <button class="secondary" id="clear-notes-btn" style="margin-top:8px">Vaciar lista</button>
@@ -536,10 +546,18 @@ async function startLiveScan(){
       ZXing.BarcodeFormat.PDF_417,
       ZXing.BarcodeFormat.EAN_13
     ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true); // más preciso, algo más lento por fotograma — vale la pena para etiquetas pequeñas
     zxingReader = new ZXing.BrowserMultiFormatReader(hints);
 
     await zxingReader.decodeFromConstraints(
-      { video: { facingMode: 'environment' } },
+      {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }] // enfoque continuo si el dispositivo lo soporta
+        }
+      },
       'scan-video',
       (result, err) => {
         if(result && scanLoopActive){
@@ -553,15 +571,35 @@ async function startLiveScan(){
         // los "err" de "no encontrado en este frame" son normales y se ignoran: sigue intentando solo
       }
     );
+
+    // Si el dispositivo tiene linterna, muestra el botón para activarla (útil con poca luz)
+    setTimeout(() => {
+      const track = $('scan-video').srcObject && $('scan-video').srcObject.getVideoTracks()[0];
+      if(track && track.getCapabilities && track.getCapabilities().torch){
+        $('scan-torch-btn').style.display = 'block';
+      }
+    }, 500);
   }catch(err){
     stopLiveScan();
     $('scan-input-fallback').click(); // sin permiso de cámara o error -> foto + IA
   }
 }
 
+let torchOn = false;
+$('scan-torch-btn').addEventListener('click', async () => {
+  const track = $('scan-video').srcObject && $('scan-video').srcObject.getVideoTracks()[0];
+  if(!track) return;
+  torchOn = !torchOn;
+  try{ await track.applyConstraints({ advanced: [{ torch: torchOn }] }); }catch(e){ /* no soportado en este momento */ }
+});
+
 function stopLiveScan(){
   scanLoopActive = false;
   clearTimeout(scanTimeoutId);
+  const track = $('scan-video').srcObject && $('scan-video').srcObject.getVideoTracks()[0];
+  if(track && torchOn){ try{ track.applyConstraints({ advanced: [{ torch: false }] }); }catch(e){} }
+  torchOn = false;
+  $('scan-torch-btn').style.display = 'none';
   if(zxingReader){ try{ zxingReader.reset(); }catch(e){} zxingReader = null; }
   $('scan-overlay').style.display = 'none';
 }
@@ -773,11 +811,12 @@ function enfocarBuscadorParaPDA(){
 searchInput.focus();
 document.addEventListener('visibilitychange', enfocarBuscadorParaPDA);
 
-// Tras tocar cualquier zona que no sea un campo de escritura real, devuelve el foco al buscador
-const CAMPOS_DE_ESCRITURA = ['cantidad', 'lote', 'no-cat-cantidad', 'admin-newname', 'login-pin-1', 'login-pin-2', 'login-admin-pin', 'login-admin-newname', 'quick-notes', 'sheet-url', 'sheet-token', 'hist-fecha'];
+// Tras tocar una zona vacía (no un campo, botón, select o enlace), devuelve el foco al buscador.
+// Nunca actúa si hay una pantalla superpuesta abierta (login, escaneo) — ahí interferiría con todo.
 document.addEventListener('touchend', (e) => {
-  const id = e.target && e.target.id;
-  if(CAMPOS_DE_ESCRITURA.includes(id)) return; // se está escribiendo algo real, no robar el foco
+  if($('login-overlay').style.display !== 'none') return;
+  if($('scan-overlay').style.display !== 'none') return;
+  if(e.target.closest('input, select, textarea, button, a, u, option, label, #config-menu, #user-context-menu')) return;
   setTimeout(enfocarBuscadorParaPDA, 50);
 }, { passive: true });
 
@@ -897,6 +936,13 @@ $('cancel-edit-btn').addEventListener('click', cancelEdit);
 $('add-btn').addEventListener('click', async () => {
   const cant = parseFloat($('cantidad').value);
   const isEdit = editingIndex !== null;
+
+  const confirmarRegistro = confirm(
+    (isEdit ? 'Guardar cambios:\n\n' : 'Confirma el registro:\n\n') +
+    cant + ' ud. de "' + selected.pn + '"' + (selected.desc ? ' — ' + selected.desc : '') + '\n\n' +
+    '¿Es correcto?'
+  );
+  if(!confirmarRegistro) return;
 
   // Mismo artículo repetido: dos niveles de aviso
   if(!isEdit){
@@ -1380,9 +1426,9 @@ $('no-cat-confirm-btn').addEventListener('click', async () => {
   if(isNaN(cantidad) || cantidad <= 0){ showToast('Indica una cantidad válida'); return; }
 
   const confirmar = confirm(
-    'Vas a solicitar añadir "' + pn + '" al catálogo.\n' +
+    'Confirma la petición de añadir "' + pn + '" al catálogo.\n' +
     'Cantidad repuesta: ' + cantidad + '\n\n' +
-    'Le llegará un correo a María para que lo añada y lo registre en Hoja2. ¿Confirmas?'
+    '¿Confirmas?'
   );
   if(!confirmar) return;
 
@@ -1701,6 +1747,66 @@ $('hist-buscar-btn').addEventListener('click', async () => {
 // ---- Lista rápida / ayuda memoria (independiente de los registros, no se sincroniza) ----
 $('quick-notes').value = localStorage.getItem('reposicion-fungibles:notas-rapidas') || '';
 
+let notesBubbles = JSON.parse(localStorage.getItem('reposicion-fungibles:notas-burbujas') || '[]'); // array de PN
+
+function renderNotesBubbles(){
+  const box = $('notes-bubbles');
+  if(notesBubbles.length === 0){ box.innerHTML = ''; return; }
+  box.innerHTML = notesBubbles.map(pn => {
+    const it = CATALOG.find(c => c.pn === pn);
+    return `<div class="notes-bubble" data-pn="${pn}"
+      style="display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:20px;padding:8px 12px;font-size:13px;cursor:pointer">
+      <span style="font-family:var(--mono);color:var(--amber)">${pn}</span>
+      <span class="notes-bubble-x" data-pn="${pn}" style="color:var(--text-dim);padding:0 2px">✕</span>
+    </div>`;
+  }).join('');
+}
+
+$('notes-search').addEventListener('input', () => {
+  const q = $('notes-search').value.trim().toLowerCase();
+  const box = $('notes-search-result');
+  if(q.length === 0){ box.classList.remove('open'); return; }
+  const matches = CATALOG.filter(it => it.pn.toLowerCase().includes(q) || (it.desc||'').toLowerCase().includes(q)).slice(0, 20);
+  if(matches.length === 0){
+    box.innerHTML = '<div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>';
+  } else {
+    box.innerHTML = matches.map(it => `
+      <div class="pn-item notes-add-item" data-pn="${it.pn}">
+        <div class="pn-code">${it.pn}</div>
+        <div class="pn-desc">${it.desc || ''}</div>
+      </div>
+    `).join('');
+  }
+  box.classList.add('open');
+});
+$('notes-search-result').addEventListener('click', (e) => {
+  const item = e.target.closest('.notes-add-item');
+  if(!item) return;
+  const pn = item.dataset.pn;
+  if(!notesBubbles.includes(pn)) notesBubbles.push(pn);
+  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
+  renderNotesBubbles();
+  $('notes-search').value = '';
+  $('notes-search-result').classList.remove('open');
+});
+$('notes-bubbles').addEventListener('click', (e) => {
+  const xBtn = e.target.closest('.notes-bubble-x');
+  if(xBtn){
+    notesBubbles = notesBubbles.filter(pn => pn !== xBtn.dataset.pn);
+    localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
+    renderNotesBubbles();
+    return;
+  }
+  const bubble = e.target.closest('.notes-bubble');
+  if(!bubble) return;
+  const it = CATALOG.find(c => c.pn === bubble.dataset.pn);
+  if(!it){ showToast('Ese artículo ya no está en el catálogo'); return; }
+  selectItem(it);
+  window.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(() => $('cantidad').focus(), 300);
+});
+renderNotesBubbles();
+
 $('toggle-notes-card').addEventListener('click', () => {
   const body = $('notes-body');
   body.style.display = body.style.display === 'none' ? 'block' : 'none';
@@ -1711,6 +1817,9 @@ $('quick-notes').addEventListener('input', () => {
 $('clear-notes-btn').addEventListener('click', () => {
   $('quick-notes').value = '';
   localStorage.removeItem('reposicion-fungibles:notas-rapidas');
+  notesBubbles = [];
+  localStorage.removeItem('reposicion-fungibles:notas-burbujas');
+  renderNotesBubbles();
   showToast('Lista vaciada');
 });
 
