@@ -811,12 +811,23 @@ function enfocarBuscadorParaPDA(){
 searchInput.focus();
 document.addEventListener('visibilitychange', enfocarBuscadorParaPDA);
 
-// Tras tocar una zona vacía (no un campo, botón, select o enlace), devuelve el foco al buscador.
-// Nunca actúa si hay una pantalla superpuesta abierta (login, escaneo) — ahí interferiría con todo.
+// Solo devuelve el foco al buscador si de verdad se tocó una zona vacía y segura
+// (el fondo, una tarjeta, la cabecera) — nunca si se tocó algo con contenido o interacción propia.
+// Nunca actúa si hay una pantalla superpuesta abierta (login, escaneo).
 document.addEventListener('touchend', (e) => {
   if($('login-overlay').style.display !== 'none') return;
   if($('scan-overlay').style.display !== 'none') return;
-  if(e.target.closest('input, select, textarea, button, a, u, option, label, #config-menu, #user-context-menu')) return;
+
+  const t = e.target;
+  const esZonaVacia =
+    t === document.body ||
+    t.tagName === 'MAIN' ||
+    t.tagName === 'HEADER' ||
+    t.classList.contains('card') ||       // el fondo de una tarjeta, no su contenido
+    t.classList.contains('eyebrow') ||
+    t.id === 'today-label';
+
+  if(!esZonaVacia) return;
   setTimeout(enfocarBuscadorParaPDA, 50);
 }, { passive: true });
 
