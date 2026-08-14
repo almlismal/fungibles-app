@@ -360,7 +360,6 @@
         <input type="text" id="notes-search" placeholder="Buscar artículo para añadir a la lista..." autocomplete="off">
         <div class="pn-result" id="notes-search-result"></div>
       </div>
-      <div id="notes-bubbles" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
 
       <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
         style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
@@ -1758,21 +1757,6 @@ $('hist-buscar-btn').addEventListener('click', async () => {
 // ---- Lista rápida / ayuda memoria (independiente de los registros, no se sincroniza) ----
 $('quick-notes').value = localStorage.getItem('reposicion-fungibles:notas-rapidas') || '';
 
-let notesBubbles = JSON.parse(localStorage.getItem('reposicion-fungibles:notas-burbujas') || '[]'); // array de PN
-
-function renderNotesBubbles(){
-  const box = $('notes-bubbles');
-  if(notesBubbles.length === 0){ box.innerHTML = ''; return; }
-  box.innerHTML = notesBubbles.map(pn => {
-    const it = CATALOG.find(c => c.pn === pn);
-    return `<div class="notes-bubble" data-pn="${pn}"
-      style="display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:20px;padding:8px 12px;font-size:13px;cursor:pointer">
-      <span style="font-family:var(--mono);color:var(--amber)">${pn}</span>
-      <span class="notes-bubble-x" data-pn="${pn}" style="color:var(--text-dim);padding:0 2px">✕</span>
-    </div>`;
-  }).join('');
-}
-
 $('notes-search').addEventListener('input', () => {
   const q = $('notes-search').value.trim().toLowerCase();
   const box = $('notes-search-result');
@@ -1782,7 +1766,7 @@ $('notes-search').addEventListener('input', () => {
     box.innerHTML = '<div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>';
   } else {
     box.innerHTML = matches.map(it => `
-      <div class="pn-item notes-add-item" data-pn="${it.pn}">
+      <div class="pn-item notes-add-item" data-pn="${it.pn}" data-desc="${(it.desc||'').replace(/"/g,'&quot;')}">
         <div class="pn-code">${it.pn}</div>
         <div class="pn-desc">${it.desc || ''}</div>
       </div>
@@ -1793,30 +1777,14 @@ $('notes-search').addEventListener('input', () => {
 $('notes-search-result').addEventListener('click', (e) => {
   const item = e.target.closest('.notes-add-item');
   if(!item) return;
-  const pn = item.dataset.pn;
-  if(!notesBubbles.includes(pn)) notesBubbles.push(pn);
-  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
-  renderNotesBubbles();
+  const linea = item.dataset.pn + (item.dataset.desc ? ' — ' + item.dataset.desc : '');
+  const actual = $('quick-notes').value;
+  $('quick-notes').value = actual ? (actual.replace(/\n+$/, '') + '\n' + linea) : linea;
+  localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
   $('notes-search').value = '';
   $('notes-search-result').classList.remove('open');
+  $('notes-search').focus();
 });
-$('notes-bubbles').addEventListener('click', (e) => {
-  const xBtn = e.target.closest('.notes-bubble-x');
-  if(xBtn){
-    notesBubbles = notesBubbles.filter(pn => pn !== xBtn.dataset.pn);
-    localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
-    renderNotesBubbles();
-    return;
-  }
-  const bubble = e.target.closest('.notes-bubble');
-  if(!bubble) return;
-  const it = CATALOG.find(c => c.pn === bubble.dataset.pn);
-  if(!it){ showToast('Ese artículo ya no está en el catálogo'); return; }
-  selectItem(it);
-  window.scrollTo({top:0, behavior:'smooth'});
-  setTimeout(() => $('cantidad').focus(), 300);
-});
-renderNotesBubbles();
 
 $('toggle-notes-card').addEventListener('click', () => {
   const body = $('notes-body');
@@ -1828,9 +1796,6 @@ $('quick-notes').addEventListener('input', () => {
 $('clear-notes-btn').addEventListener('click', () => {
   $('quick-notes').value = '';
   localStorage.removeItem('reposicion-fungibles:notas-rapidas');
-  notesBubbles = [];
-  localStorage.removeItem('reposicion-fungibles:notas-burbujas');
-  renderNotesBubbles();
   showToast('Lista vaciada');
 });
 
