@@ -354,7 +354,7 @@
   <div class="card">
     <div class="card-title" style="cursor:pointer" id="toggle-notes-card">📝 Lista rápida (antes de reponer)</div>
     <div id="notes-body" style="display:none;margin-top:12px">
-      <div class="hint" style="margin-bottom:10px">Solo para apuntar lo que necesitas ir a buscar. No se sincroniza ni cuenta como registro — bórrala cuando termines.</div>
+      <div class="hint" style="margin-bottom:10px">Busca lo que necesitas ir a buscar. No cuenta como registro — al registrarlo, se quita sola de aquí.</div>
 
       <div class="field" style="position:relative">
         <input type="text" id="notes-search" placeholder="Buscar artículo para añadir a la lista..." autocomplete="off">
@@ -366,8 +366,6 @@
         <div id="notes-bubbles" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
       </div>
 
-      <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
-        style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
       <button class="secondary" id="clear-notes-btn" style="margin-top:8px">Vaciar lista</button>
     </div>
   </div>
@@ -1005,6 +1003,7 @@ $('add-btn').addEventListener('click', async () => {
 
   const wasEdit = isEdit;
   cancelEdit(); // limpia el formulario y sale del modo edición
+  if(!wasEdit) quitarBurbuja(entry.pn); // si estaba en la lista rápida, se quita sola al registrarlo
 
   renderLog();
   showToast(wasEdit ? 'Cambios guardados' : 'Reposición registrada');
@@ -1760,8 +1759,6 @@ $('hist-buscar-btn').addEventListener('click', async () => {
 });
 
 // ---- Lista rápida / ayuda memoria (independiente de los registros, no se sincroniza) ----
-$('quick-notes').value = localStorage.getItem('reposicion-fungibles:notas-rapidas') || '';
-
 $('notes-search').addEventListener('input', () => {
   const q = $('notes-search').value.trim().toLowerCase();
   const box = $('notes-search-result');
@@ -1794,15 +1791,17 @@ function renderNotesBubbles(){
   `).join('');
 }
 
+function quitarBurbuja(pn){
+  if(!notesBubbles.includes(pn)) return;
+  notesBubbles = notesBubbles.filter(p => p !== pn);
+  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
+  renderNotesBubbles();
+}
+
 $('notes-search-result').addEventListener('click', (e) => {
   const item = e.target.closest('.notes-add-item');
   if(!item) return;
   const pn = item.dataset.pn;
-
-  const linea = pn + (item.dataset.desc ? ' — ' + item.dataset.desc : '');
-  const actual = $('quick-notes').value;
-  $('quick-notes').value = actual ? (actual.replace(/\n+$/, '') + '\n' + linea) : linea;
-  localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
 
   if(!notesBubbles.includes(pn)) notesBubbles.push(pn);
   localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
@@ -1815,12 +1814,7 @@ $('notes-search-result').addEventListener('click', (e) => {
 
 $('notes-bubbles').addEventListener('click', (e) => {
   const xBtn = e.target.closest('.notes-bubble-x');
-  if(xBtn){
-    notesBubbles = notesBubbles.filter(pn => pn !== xBtn.dataset.pn);
-    localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
-    renderNotesBubbles();
-    return;
-  }
+  if(xBtn){ quitarBurbuja(xBtn.dataset.pn); return; }
   const goBtn = e.target.closest('.notes-bubble-go');
   if(!goBtn) return;
   const it = CATALOG.find(c => c.pn === goBtn.dataset.pn);
@@ -1835,12 +1829,7 @@ $('toggle-notes-card').addEventListener('click', () => {
   const body = $('notes-body');
   body.style.display = body.style.display === 'none' ? 'block' : 'none';
 });
-$('quick-notes').addEventListener('input', () => {
-  localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
-});
 $('clear-notes-btn').addEventListener('click', () => {
-  $('quick-notes').value = '';
-  localStorage.removeItem('reposicion-fungibles:notas-rapidas');
   notesBubbles = [];
   localStorage.removeItem('reposicion-fungibles:notas-burbujas');
   renderNotesBubbles();
