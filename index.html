@@ -361,6 +361,11 @@
         <div class="pn-result" id="notes-search-result"></div>
       </div>
 
+      <div id="notes-bubbles-wrap" style="display:none;margin-bottom:16px">
+        <label>Toca uno para enviarlo directo al registro</label>
+        <div id="notes-bubbles" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
+      </div>
+
       <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
         style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
       <button class="secondary" id="clear-notes-btn" style="margin-top:8px">Vaciar lista</button>
@@ -1774,17 +1779,57 @@ $('notes-search').addEventListener('input', () => {
   }
   box.classList.add('open');
 });
+let notesBubbles = JSON.parse(localStorage.getItem('reposicion-fungibles:notas-burbujas') || '[]'); // array de PN
+
+function renderNotesBubbles(){
+  const wrap = $('notes-bubbles-wrap');
+  const box = $('notes-bubbles');
+  if(notesBubbles.length === 0){ wrap.style.display = 'none'; box.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  box.innerHTML = notesBubbles.map(pn => `
+    <div class="notes-bubble" style="display:flex;align-items:stretch;background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:8px;overflow:hidden">
+      <div class="notes-bubble-go" data-pn="${pn}" style="padding:12px 14px;font-family:var(--mono);color:var(--amber);cursor:pointer;font-size:14px">${pn}</div>
+      <div class="notes-bubble-x" data-pn="${pn}" style="display:flex;align-items:center;justify-content:center;padding:0 16px;color:var(--red);cursor:pointer;border-left:1px solid var(--line);font-size:18px;font-weight:700">✕</div>
+    </div>
+  `).join('');
+}
+
 $('notes-search-result').addEventListener('click', (e) => {
   const item = e.target.closest('.notes-add-item');
   if(!item) return;
-  const linea = item.dataset.pn + (item.dataset.desc ? ' — ' + item.dataset.desc : '');
+  const pn = item.dataset.pn;
+
+  const linea = pn + (item.dataset.desc ? ' — ' + item.dataset.desc : '');
   const actual = $('quick-notes').value;
   $('quick-notes').value = actual ? (actual.replace(/\n+$/, '') + '\n' + linea) : linea;
   localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
+
+  if(!notesBubbles.includes(pn)) notesBubbles.push(pn);
+  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
+  renderNotesBubbles();
+
   $('notes-search').value = '';
   $('notes-search-result').classList.remove('open');
   $('notes-search').focus();
 });
+
+$('notes-bubbles').addEventListener('click', (e) => {
+  const xBtn = e.target.closest('.notes-bubble-x');
+  if(xBtn){
+    notesBubbles = notesBubbles.filter(pn => pn !== xBtn.dataset.pn);
+    localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
+    renderNotesBubbles();
+    return;
+  }
+  const goBtn = e.target.closest('.notes-bubble-go');
+  if(!goBtn) return;
+  const it = CATALOG.find(c => c.pn === goBtn.dataset.pn);
+  if(!it){ showToast('Ese artículo ya no está en el catálogo'); return; }
+  selectItem(it);
+  window.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(() => $('cantidad').focus(), 300);
+});
+renderNotesBubbles();
 
 $('toggle-notes-card').addEventListener('click', () => {
   const body = $('notes-body');
@@ -1796,6 +1841,9 @@ $('quick-notes').addEventListener('input', () => {
 $('clear-notes-btn').addEventListener('click', () => {
   $('quick-notes').value = '';
   localStorage.removeItem('reposicion-fungibles:notas-rapidas');
+  notesBubbles = [];
+  localStorage.removeItem('reposicion-fungibles:notas-burbujas');
+  renderNotesBubbles();
   showToast('Lista vaciada');
 });
 
