@@ -774,7 +774,7 @@ searchInput.focus();
 document.addEventListener('visibilitychange', enfocarBuscadorParaPDA);
 
 // Tras tocar cualquier zona que no sea un campo de escritura real, devuelve el foco al buscador
-const CAMPOS_DE_ESCRITURA = ['cantidad', 'lote', 'login-pin-1', 'login-pin-2', 'login-admin-pin', 'login-admin-newname', 'quick-notes', 'sheet-url', 'sheet-token', 'hist-fecha'];
+const CAMPOS_DE_ESCRITURA = ['cantidad', 'lote', 'no-cat-cantidad', 'admin-newname', 'login-pin-1', 'login-pin-2', 'login-admin-pin', 'login-admin-newname', 'quick-notes', 'sheet-url', 'sheet-token', 'hist-fecha'];
 document.addEventListener('touchend', (e) => {
   const id = e.target && e.target.id;
   if(CAMPOS_DE_ESCRITURA.includes(id)) return; // se está escribiendo algo real, no robar el foco
