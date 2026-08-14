@@ -354,18 +354,9 @@
   <div class="card">
     <div class="card-title" style="cursor:pointer" id="toggle-notes-card">📝 Lista rápida (antes de reponer)</div>
     <div id="notes-body" style="display:none;margin-top:12px">
-      <div class="hint" style="margin-bottom:10px">Busca lo que necesitas ir a buscar. No cuenta como registro — al registrarlo, se quita sola de aquí.</div>
-
-      <div class="field" style="position:relative">
-        <input type="text" id="notes-search" placeholder="Buscar artículo para añadir a la lista..." autocomplete="off">
-        <div class="pn-result" id="notes-search-result"></div>
-      </div>
-
-      <div id="notes-bubbles-wrap" style="display:none;margin-bottom:16px">
-        <label>Toca uno para enviarlo directo al registro</label>
-        <div id="notes-bubbles" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
-      </div>
-
+      <div class="hint" style="margin-bottom:10px">Solo para apuntar lo que necesitas ir a buscar. No se sincroniza ni cuenta como registro — bórrala cuando termines.</div>
+      <textarea id="quick-notes" rows="4" placeholder="Ej. guantes M, cinta kapton, alcohol isopropílico..."
+        style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:12px;border-radius:6px;font-size:15px;font-family:var(--body);resize:vertical"></textarea>
       <button class="secondary" id="clear-notes-btn" style="margin-top:8px">Vaciar lista</button>
     </div>
   </div>
@@ -1003,7 +994,6 @@ $('add-btn').addEventListener('click', async () => {
 
   const wasEdit = isEdit;
   cancelEdit(); // limpia el formulario y sale del modo edición
-  if(!wasEdit) quitarBurbuja(entry.pn); // si estaba en la lista rápida, se quita sola al registrarlo
 
   renderLog();
   showToast(wasEdit ? 'Cambios guardados' : 'Reposición registrada');
@@ -1759,80 +1749,18 @@ $('hist-buscar-btn').addEventListener('click', async () => {
 });
 
 // ---- Lista rápida / ayuda memoria (independiente de los registros, no se sincroniza) ----
-$('notes-search').addEventListener('input', () => {
-  const q = $('notes-search').value.trim().toLowerCase();
-  const box = $('notes-search-result');
-  if(q.length === 0){ box.classList.remove('open'); return; }
-  const matches = CATALOG.filter(it => it.pn.toLowerCase().includes(q) || (it.desc||'').toLowerCase().includes(q)).slice(0, 20);
-  if(matches.length === 0){
-    box.innerHTML = '<div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>';
-  } else {
-    box.innerHTML = matches.map(it => `
-      <div class="pn-item notes-add-item" data-pn="${it.pn}" data-desc="${(it.desc||'').replace(/"/g,'&quot;')}">
-        <div class="pn-code">${it.pn}</div>
-        <div class="pn-desc">${it.desc || ''}</div>
-      </div>
-    `).join('');
-  }
-  box.classList.add('open');
-});
-let notesBubbles = JSON.parse(localStorage.getItem('reposicion-fungibles:notas-burbujas') || '[]'); // array de PN
-
-function renderNotesBubbles(){
-  const wrap = $('notes-bubbles-wrap');
-  const box = $('notes-bubbles');
-  if(notesBubbles.length === 0){ wrap.style.display = 'none'; box.innerHTML = ''; return; }
-  wrap.style.display = 'block';
-  box.innerHTML = notesBubbles.map(pn => `
-    <div class="notes-bubble" style="display:flex;align-items:stretch;background:var(--panel-2);border:1px solid var(--amber-dim);border-radius:8px;overflow:hidden">
-      <div class="notes-bubble-go" data-pn="${pn}" style="padding:12px 14px;font-family:var(--mono);color:var(--amber);cursor:pointer;font-size:14px">${pn}</div>
-      <div class="notes-bubble-x" data-pn="${pn}" style="display:flex;align-items:center;justify-content:center;padding:0 16px;color:var(--red);cursor:pointer;border-left:1px solid var(--line);font-size:18px;font-weight:700">✕</div>
-    </div>
-  `).join('');
-}
-
-function quitarBurbuja(pn){
-  if(!notesBubbles.includes(pn)) return;
-  notesBubbles = notesBubbles.filter(p => p !== pn);
-  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
-  renderNotesBubbles();
-}
-
-$('notes-search-result').addEventListener('click', (e) => {
-  const item = e.target.closest('.notes-add-item');
-  if(!item) return;
-  const pn = item.dataset.pn;
-
-  if(!notesBubbles.includes(pn)) notesBubbles.push(pn);
-  localStorage.setItem('reposicion-fungibles:notas-burbujas', JSON.stringify(notesBubbles));
-  renderNotesBubbles();
-
-  $('notes-search').value = '';
-  $('notes-search-result').classList.remove('open');
-  $('notes-search').focus();
-});
-
-$('notes-bubbles').addEventListener('click', (e) => {
-  const xBtn = e.target.closest('.notes-bubble-x');
-  if(xBtn){ quitarBurbuja(xBtn.dataset.pn); return; }
-  const goBtn = e.target.closest('.notes-bubble-go');
-  if(!goBtn) return;
-  const it = CATALOG.find(c => c.pn === goBtn.dataset.pn);
-  if(!it){ showToast('Ese artículo ya no está en el catálogo'); return; }
-  selectItem(it);
-  window.scrollTo({top:0, behavior:'smooth'});
-  setTimeout(() => $('cantidad').focus(), 300);
-});
-renderNotesBubbles();
+$('quick-notes').value = localStorage.getItem('reposicion-fungibles:notas-rapidas') || '';
 
 $('toggle-notes-card').addEventListener('click', () => {
   const body = $('notes-body');
   body.style.display = body.style.display === 'none' ? 'block' : 'none';
 });
+$('quick-notes').addEventListener('input', () => {
+  localStorage.setItem('reposicion-fungibles:notas-rapidas', $('quick-notes').value);
+});
 $('clear-notes-btn').addEventListener('click', () => {
-  notesBubbles = [];
-  localStorage.removeItem('reposicion-fungibles:notas-burbujas');
-  renderNotesBubbles();
+  $('quick-notes').value = '';
+  localStorage.removeItem('reposicion-fungibles:notas-rapidas');
   showToast('Lista vaciada');
 });
 
