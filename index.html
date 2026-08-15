@@ -169,13 +169,26 @@
 </head>
 <body>
 
+<div id="device-gate" style="position:fixed;inset:0;background:#0B0D0F;z-index:99;display:flex;flex-direction:column;justify-content:center;padding:28px">
+  <div style="max-width:340px;margin:0 auto;width:100%">
+    <h1 style="font-family:var(--sans);text-transform:uppercase;font-size:26px;margin-bottom:6px">Acceso</h1>
+    <div class="sub" style="margin-bottom:24px">Introduce tus datos para continuar</div>
+    <label>Usuario</label>
+    <input type="text" id="device-user" autocomplete="username" placeholder="usuario">
+    <label style="margin-top:12px">Contraseña</label>
+    <input type="password" id="device-pass" autocomplete="current-password" placeholder="••••••••">
+    <div id="device-gate-error" style="display:none;color:var(--red);font-size:13px;margin-top:10px;font-weight:600">Usuario o contraseña incorrectos</div>
+    <button class="primary" id="device-gate-submit" style="margin-top:16px">Entrar</button>
+  </div>
+</div>
+
+
 <div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);z-index:95;display:flex;flex-direction:column;padding:24px;padding-top:calc(30px + env(safe-area-inset-top));overflow-y:auto">
   <div class="eyebrow">LIS · Almacén DHV Technology</div>
   <h1 style="margin-bottom:4px">Iniciar sesión</h1>
   <div class="sub" style="margin-bottom:20px">Selecciona tu nombre</div>
 
   <div id="login-user-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
-  <button class="secondary" id="login-add-user-btn" style="margin-top:10px">+ Nuevo usuario (requiere admin)</button>
 
   <div id="login-pin-panel" style="display:none;margin-top:20px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:6px">
     <div id="login-pin-title" style="font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:14px"></div>
@@ -220,6 +233,7 @@
       <b id="session-name" style="color:var(--amber);font-family:var(--sans);font-size:20px;letter-spacing:0.01em">—</b>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <u id="login-open-btn" class="session-pill" style="display:none">Iniciar sesión</u>
       <u id="config-btn" class="session-pill" style="display:none">⚙️ Configuración</u>
       <u id="change-pin-btn" class="session-pill">🔑 Cambiar PIN</u>
       <u id="logout-btn" class="session-pill" style="color:var(--red)">Cerrar sesión</u>
@@ -405,7 +419,34 @@ async function actualizarCatalogo(silencioso){
 const $ = (id) => document.getElementById(id);
 let selected = null;
 let entries = [];
+// ---- Acceso de dispositivo (pantalla previa, una sola vez por aparato) ----
+// Cambia estos dos valores cuando tengas el correo y la contraseña definitivos.
+const DEVICE_USER = 'alm.lis.mal';
+const DEVICE_PASS = 'Malaga.2026';
+
+if(localStorage.getItem('reposicion-fungibles:device-verified') === 'true'){
+  $('device-gate').style.display = 'none';
+}
+$('device-gate-submit').addEventListener('click', () => {
+  const u = $('device-user').value.trim();
+  const p = $('device-pass').value;
+  if(u === DEVICE_USER && p === DEVICE_PASS){
+    localStorage.setItem('reposicion-fungibles:device-verified', 'true');
+    $('device-gate').style.display = 'none';
+  } else {
+    $('device-gate-error').style.display = 'block';
+  }
+});
+
 let activeUser = localStorage.getItem('reposicion-fungibles:usuario-activo') || '';
+
+// Identificador de dispositivo: se genera una vez y se queda fijo para siempre en este aparato.
+// Se manda con cada registro (en columnas ocultas de la Sheet) solo para trazabilidad — nadie lo ve al usar la app.
+let deviceId = localStorage.getItem('reposicion-fungibles:device-id');
+if(!deviceId){
+  deviceId = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)));
+  localStorage.setItem('reposicion-fungibles:device-id', deviceId);
+}
 let usuariosConocidos = JSON.parse(localStorage.getItem('reposicion-fungibles:usuarios') || '[]');
 let editingIndex = null;
 
@@ -693,7 +734,11 @@ async function syncToSheet(entry){
     const res = await fetch(sheetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({}, entry, { token: sheetToken }))
+      body: JSON.stringify(Object.assign({}, entry, {
+        token: sheetToken,
+        deviceId: deviceId,
+        userAgent: navigator.userAgent
+      }))
     });
     if(!res.ok) return 'error';
     const body = await res.json().catch(() => null);
@@ -1209,9 +1254,14 @@ function esAdminActivo(){
 function renderSessionHeader(){
   $('session-name').textContent = (activeUser || '—') + (esAdminActivo() ? ' 🔒' : '');
   const admin = esAdminActivo();
-  $('config-btn').style.display = admin ? 'inline' : 'none';
-  $('change-pin-btn').style.display = admin ? 'none' : 'inline';
+  const logueado = !!activeUser;
+
+  $('login-open-btn').style.display = logueado ? 'none' : 'inline';
+  $('config-btn').style.display = (logueado && admin) ? 'inline' : 'none';
+  $('change-pin-btn').style.display = (logueado && !admin) ? 'inline' : 'none';
+  $('logout-btn').style.display = logueado ? 'inline' : 'none';
 }
+$('login-open-btn').addEventListener('click', abrirLogin);
 
 function abrirLogin(){
   $('login-overlay').style.display = 'flex';
@@ -1465,13 +1515,6 @@ $('login-forgot-btn').addEventListener('click', () => {
   abrirPanelAdmin('Autorizar reinicio de PIN de ' + flujoLogin.nombre);
 });
 
-// --- Nuevo usuario (requiere admin) ---
-$('login-add-user-btn').addEventListener('click', () => {
-  flujoAdmin = { modo: 'nuevo-usuario' };
-  abrirPanelAdmin('Autorizar alta de usuario nuevo');
-  $('login-admin-newname-wrap').style.display = 'block';
-});
-
 function abrirPanelAdmin(titulo){
   $('login-admin-title').textContent = titulo;
   $('login-admin-select').innerHTML = usuariosDetalle.filter(u => u.esAdmin)
@@ -1597,7 +1640,8 @@ if(activeUser){
   cerrarLogin();
   programarCierreAutomatico();
 } else {
-  abrirLogin();
+  cerrarLogin(); // la app se ve directamente; el login se abre solo si el usuario toca "Iniciar sesión"
+  renderSessionHeader();
 }
 cargarUsuariosParaLogin();
 
