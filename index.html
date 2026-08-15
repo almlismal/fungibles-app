@@ -420,11 +420,13 @@ const $ = (id) => document.getElementById(id);
 let selected = null;
 let entries = [];
 // ---- Acceso de dispositivo (pantalla previa, una sola vez por aparato) ----
-// Cambia estos dos valores cuando tengas el correo y la contraseña definitivos.
+// Interruptor: pon "true" para activarla, "false" para desactivarla del todo (nadie la ve, ni siquiera dispositivos nuevos).
+const DEVICE_GATE_ACTIVO = false;
+
 const DEVICE_USER = 'alm.lis.mal';
 const DEVICE_PASS = 'Malaga.2026';
 
-if(localStorage.getItem('reposicion-fungibles:device-verified') === 'true'){
+if(!DEVICE_GATE_ACTIVO || localStorage.getItem('reposicion-fungibles:device-verified') === 'true'){
   $('device-gate').style.display = 'none';
 }
 $('device-gate-submit').addEventListener('click', () => {
