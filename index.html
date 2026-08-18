@@ -300,7 +300,7 @@
         <input type="number" id="no-cat-cantidad" placeholder="Ej. 5" min="0" step="any">
         <div class="row2" style="margin-top:10px">
           <button class="secondary" id="no-cat-cancel-btn">Cancelar</button>
-          <button class="primary" id="no-cat-confirm-btn" style="padding:12px">Solicitar a María</button>
+          <button class="primary" id="no-cat-confirm-btn" style="padding:12px">Enviar solicitud</button>
         </div>
       </div>
     </div>
@@ -797,7 +797,7 @@ function renderResults(items){
       <div class="pn-item" style="cursor:default;color:var(--text-dim)">Sin coincidencias</div>
       <div class="pn-item pn-no-catalogado" style="cursor:pointer">
         <div class="pn-code" style="color:var(--amber)">+ Solicitar añadir "${q}"</div>
-        <div class="pn-desc">No está en el catálogo — se le pedirá a María que lo añada</div>
+        <div class="pn-desc">No está en el catálogo — se solicitará que lo añadan</div>
       </div>
     `;
     resultBox.classList.add('open');
@@ -1513,7 +1513,7 @@ $('no-cat-confirm-btn').addEventListener('click', async () => {
   searchInput.value = '';
   resultBox.classList.remove('open');
 
-  if(!sheetUrl){ showToast('⚠ Conecta primero la Google Sheet para poder avisar a María'); return; }
+  if(!sheetUrl){ showToast('⚠ Conecta primero la Google Sheet para poder enviar la solicitud'); return; }
 
   showToast('Enviando solicitud…');
   try{
@@ -1527,7 +1527,7 @@ $('no-cat-confirm-btn').addEventListener('click', async () => {
       })
     });
     const body = await res.json().catch(() => null);
-    showToast(body && body.status === 'ok' ? '✓ Solicitud enviada a María' : '⚠ No se pudo enviar la solicitud');
+    showToast(body && body.status === 'ok' ? '✓ Solicitud enviada' : '⚠ No se pudo enviar la solicitud');
   }catch(err){
     showToast('⚠ Sin conexión: no se pudo enviar la solicitud');
   }
