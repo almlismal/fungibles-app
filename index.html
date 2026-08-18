@@ -482,12 +482,88 @@ function todayLabel(){
 }
 
 // ---- escaneo de etiqueta con cámara (QR primero, IA como respaldo si el QR falla) ----
-function fileToBase64(file){
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(',')[1]);
-    r.onerror = () => reject(new Error('No se pudo leer la imagen'));
-    r.readAsDataURL(file);
+// Convierte cualquier foto (HEIC, JPEG grande, etc.) a un JPEG estándar de tamaño razonable.
+// Esto evita fallos de lectura por formatos que la IA de visión no reconoce bien, y acelera el envío.
+// Lee la etiqueta de orientación que la cámara graba dentro de la foto (1 a 8).
+// Sin esto, una foto tomada en vertical o girada puede llegar "de lado" a la IA sin que se note en pantalla.
+function leerOrientacionExif(file){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try{
+        const view = new DataView(e.target.result);
+        if(view.getUint16(0, false) !== 0xFFD8){ resolve(1); return; } // no es JPEG, no hay nada que leer
+        let offset = 2;
+        while(offset < view.byteLength){
+          const marker = view.getUint16(offset, false);
+          offset += 2;
+          if(marker === 0xFFE1){
+            if(view.getUint32(offset + 2, false) !== 0x45786966){ resolve(1); return; }
+            const little = view.getUint16(offset + 8, false) === 0x4949;
+            const base = offset + 8;
+            const firstIFD = view.getUint32(base + 4, little);
+            const numTags = view.getUint16(base + firstIFD, little);
+            for(let i = 0; i < numTags; i++){
+              const tagOffset = base + firstIFD + 2 + (i * 12);
+              if(view.getUint16(tagOffset, little) === 0x0112){
+                resolve(view.getUint16(tagOffset + 8, little));
+                return;
+              }
+            }
+            resolve(1); return;
+          } else if((marker & 0xFF00) !== 0xFF00){
+            break;
+          } else {
+            offset += view.getUint16(offset, false);
+          }
+        }
+      }catch(err){ /* si algo falla leyendo, seguimos sin rotar */ }
+      resolve(1);
+    };
+    reader.onerror = () => resolve(1);
+    reader.readAsArrayBuffer(file.slice(0, 128 * 1024)); // basta con el principio del archivo
+  });
+}
+
+function normalizarImagenParaIA(file){
+  return new Promise(async (resolve, reject) => {
+    try{
+      const orientacion = await leerOrientacionExif(file);
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX_LADO = 1568; // tamaño recomendado para lectura de imágenes por IA
+        let { width, height } = img;
+        if(width > MAX_LADO || height > MAX_LADO){
+          const escala = MAX_LADO / Math.max(width, height);
+          width = Math.round(width * escala);
+          height = Math.round(height * escala);
+        }
+
+        const giro90 = orientacion >= 5 && orientacion <= 8; // estos giros intercambian ancho y alto
+        const canvas = document.createElement('canvas');
+        canvas.width = giro90 ? height : width;
+        canvas.height = giro90 ? width : height;
+        const ctx = canvas.getContext('2d');
+
+        switch(orientacion){
+          case 2: ctx.transform(-1, 0, 0, 1, width, 0); break;
+          case 3: ctx.transform(-1, 0, 0, -1, width, height); break;
+          case 4: ctx.transform(1, 0, 0, -1, 0, height); break;
+          case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+          case 6: ctx.transform(0, 1, -1, 0, height, 0); break;
+          case 7: ctx.transform(0, -1, -1, 0, height, width); break;
+          case 8: ctx.transform(0, -1, 1, 0, 0, width); break;
+          default: break; // 1: ya está en la orientación correcta
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo procesar la imagen')); };
+      img.src = url;
+    }catch(err){ reject(err); }
   });
 }
 
@@ -505,15 +581,18 @@ async function analizarEtiqueta(base64Data, mediaType){
           { type: "text", text:
             "Esta foto es de un almacén y puede tener varias etiquetas, texto de cajas u otros elementos. " +
             "PRIMERO localiza un código de artículo con formato 'SPC-...' o 'S/C-...' seguido de letras y números " +
-            "(por ejemplo SPC-M-3701 o S/C-141) — ese código es el 'Item P/N' de la etiqueta que nos interesa. " +
+            "(por ejemplo SPC-M-3701 o S/C-141). Sé tolerante con variaciones de OCR: espacios de más, guion bajo en vez de guion, " +
+            "una letra ambigua entre O/0 o I/1, etc. — interpreta el código más probable, no exijas una coincidencia exacta de formato. " +
+            "Ese código es el 'Item P/N' de la etiqueta que nos interesa. " +
             "Usa ese código como ancla: la etiqueta correcta es la que lo contiene junto a 'Item P/N:' y 'Descrip:'. " +
-            "SEGUNDO, dentro de esa misma etiqueta, localiza el campo 'P/O:' — ese es el número de lote. " +
-            "Si el campo 'P/O:' está vacío o no aparece, devuelve el lote como el texto exacto 'N/A'. " +
-            "Si tiene un valor (por ejemplo 2025-GG-984), devuelve ese valor tal cual. " +
+            "SEGUNDO, dentro de esa misma etiqueta, busca el número de lote con esta prioridad: " +
+            "si existe un campo llamado 'Lote:' (con ese nombre exacto o muy parecido), usa SIEMPRE ese valor — es el correcto, aunque también haya un campo 'P/O:' distinto en la misma etiqueta. " +
+            "Solo si NO existe ningún campo 'Lote:' en la etiqueta, usa el valor de 'P/O:' como lote. " +
+            "Si no encuentras ni 'Lote:' ni 'P/O:', devuelve el lote como el texto exacto 'N/A'. " +
             "Ignora cualquier otro texto que no esté pegado a ese código: impresiones de la caja de cartón, otras etiquetas parciales, fondos, etc. " +
             "Devuelve SOLO un JSON, sin explicación ni markdown, con este formato exacto: " +
             '{"pn": "...", "descripcion": "...", "lote": "...", "encontrado": true}' +
-            ". Si no encuentras un código 'SPC-...' o 'S/C-...' legible, devuelve " +
+            ". Si de verdad no encuentras ningún código con ese patrón, ni siquiera aproximado, devuelve " +
             '{"pn": null, "descripcion": null, "lote": null, "encontrado": false}'
           }
         ]
@@ -701,8 +780,8 @@ $('scan-input-fallback').addEventListener('change', async (e) => {
   // 2) Plan B: si el QR no se pudo leer (ángulo, distancia, brillo...), leer el texto con IA
   statusEl.textContent = '🔎 QR no legible, probando a leer el texto...';
   try{
-    const base64Data = await fileToBase64(file);
-    const result = await analizarEtiqueta(base64Data, file.type);
+    const base64Data = await normalizarImagenParaIA(file);
+    const result = await analizarEtiqueta(base64Data, 'image/jpeg');
     if(!result.encontrado){
       statusEl.textContent = '⚠ No se reconoció ninguna etiqueta. Busca el artículo a mano.';
     } else {
