@@ -262,7 +262,6 @@
     </div>
 
     <button class="secondary" id="scan-btn" style="margin-bottom:14px">📷 Escanear etiqueta</button>
-    <input type="file" id="scan-input-fallback" accept="image/*" capture="environment" style="display:none">
 
     <div id="scan-overlay" style="display:none;position:fixed;inset:0;background:#000;z-index:50;">
       <video id="scan-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
@@ -274,9 +273,6 @@
         </div>
       </div>
       <div style="position:absolute;left:10%;right:10%;top:35%;bottom:35%;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,0.35);"></div>
-      <div style="position:absolute;left:0;right:0;bottom:0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));background:linear-gradient(transparent, #000000cc);text-align:center;">
-        <u id="scan-no-qr-btn" style="color:#fff;font-size: 15px;cursor:pointer">Esta etiqueta no tiene QR — usar foto</u>
-      </div>
     </div>
 
     <div id="scan-status" style="display:none;font-size: 14.5px;color:var(--amber);margin:-8px 0 14px;text-align:center"></div>
@@ -515,7 +511,7 @@ function aplicarCodigoBarras(text, statusSetter){
 async function startLiveScan(){
   const zxingOk = typeof ZXing !== 'undefined';
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !zxingOk){
-    $('scan-input-fallback').click(); // fallback a foto + IA
+    showToast('⚠ Este dispositivo no permite usar la cámara — busca el artículo a mano');
     return;
   }
 
@@ -573,7 +569,7 @@ async function startLiveScan(){
     }, 500);
   }catch(err){
     stopLiveScan();
-    $('scan-input-fallback').click(); // sin permiso de cámara o error -> foto + IA
+    showToast('⚠ No se pudo acceder a la cámara — revisa los permisos o busca a mano');
   }
 }
 
@@ -595,51 +591,6 @@ function stopLiveScan(){
   if(zxingReader){ try{ zxingReader.reset(); }catch(e){} zxingReader = null; }
   $('scan-overlay').style.display = 'none';
 }
-
-$('scan-no-qr-btn').addEventListener('click', () => {
-  stopLiveScan();
-  $('scan-input-fallback').click(); // abre la cámara normal, y esa foto pasa por lectura de QR y luego IA
-});
-
-// --- Fallback: foto + IA (si no hay cámara en vivo, o el código no es legible) ---
-$('scan-input-fallback').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const statusEl = $('scan-status');
-  statusEl.style.display = 'block';
-  statusEl.textContent = '🔎 Leyendo código QR...';
-
-  // 1) Intento rápido: leer el QR directamente de la foto (sin IA, instantáneo y exacto)
-  if(typeof ZXing !== 'undefined'){
-    try{
-      const dataUrl = await new Promise((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result);
-        fr.onerror = () => reject(new Error('No se pudo leer la imagen'));
-        fr.readAsDataURL(file);
-      });
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
-        img.src = dataUrl;
-      });
-      const reader = new ZXing.BrowserMultiFormatReader();
-      const zxResult = await reader.decodeFromImageElement(img);
-      aplicarCodigoBarras(zxResult.getText(), (msg) => statusEl.textContent = msg);
-      setTimeout(() => statusEl.style.display = 'none', 4000);
-      $('scan-input-fallback').value = '';
-      return;
-    }catch(zxErr){
-      console.error('Fallo lectura QR:', zxErr);
-    }
-  }
-
-  // El QR no se pudo leer en esta foto (ángulo, distancia, brillo...): a buscar a mano
-  statusEl.textContent = '⚠ No se pudo leer el código en esta foto. Busca el artículo a mano.';
-  setTimeout(() => statusEl.style.display = 'none', 4000);
-  $('scan-input-fallback').value = '';
-});
 
 $('today-label').textContent = todayLabel();
 $('fecha').value = todayISO();
