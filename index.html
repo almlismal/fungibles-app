@@ -483,8 +483,6 @@ function todayLabel(){
 let zxingReader = null;
 let scanLoopActive = false;
 let scanTimeoutId = null;
-let scanFrameLoop = null;
-let scanFrameBusy = false;
 
 $('scan-btn').addEventListener('click', startLiveScan);
 $('scan-cancel-btn').addEventListener('click', stopLiveScan);
@@ -539,41 +537,17 @@ async function startLiveScan(){
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     zxingReader = new ZXing.BrowserMultiFormatReader(hints);
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        advanced: [{ focusMode: 'continuous' }]
-      }
-    });
-    const video = $('scan-video');
-    video.srcObject = stream;
-    await video.play();
-    await new Promise(r => { if(video.videoWidth) r(); else video.onloadedmetadata = r; });
-
-    // Lienzo de recorte: solo la zona que marca el recuadro en pantalla (10% de margen a los lados, 35% arriba/abajo),
-    // ampliada al doble — así cada módulo del QR ocupa más resolución real para el decodificador.
-    const cropCanvas = document.createElement('canvas');
-    const cropCtx = cropCanvas.getContext('2d', { willReadFrequently: true });
-    const AMPLIACION = 2;
-
-    scanFrameLoop = setInterval(async () => {
-      if(!scanLoopActive || scanFrameBusy) return;
-      scanFrameBusy = true;
-      try{
-        const vw = video.videoWidth, vh = video.videoHeight;
-        if(!vw || !vh){ scanFrameBusy = false; return; }
-        const sx = vw * 0.10, sy = vh * 0.35, sw = vw * 0.80, sh = vh * 0.30;
-        cropCanvas.width = sw * AMPLIACION;
-        cropCanvas.height = sh * AMPLIACION;
-        cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
-
-        const img = new Image();
-        img.src = cropCanvas.toDataURL('image/jpeg', 0.92);
-        await new Promise(r => { img.onload = r; img.onerror = r; });
-        const result = await zxingReader.decodeFromImageElement(img).catch(() => null);
-
+    await zxingReader.decodeFromConstraints(
+      {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }]
+        }
+      },
+      'scan-video',
+      (result, err) => {
         if(result && scanLoopActive){
           const text = result.getText();
           stopLiveScan();
@@ -582,9 +556,8 @@ async function startLiveScan(){
           aplicarCodigoBarras(text, (msg) => statusEl2.textContent = msg);
           setTimeout(() => statusEl2.style.display = 'none', 5000);
         }
-      }catch(e){ /* fotograma sin código legible: normal, se sigue intentando */ }
-      scanFrameBusy = false;
-    }, 250);
+      }
+    );
 
     // Si el dispositivo tiene linterna, muestra el botón para activarla (útil con poca luz)
     setTimeout(() => {
@@ -610,16 +583,11 @@ $('scan-torch-btn').addEventListener('click', async () => {
 function stopLiveScan(){
   scanLoopActive = false;
   clearTimeout(scanTimeoutId);
-  clearInterval(scanFrameLoop);
-  scanFrameLoop = null;
-  scanFrameBusy = false;
-  const video = $('scan-video');
-  const track = video.srcObject && video.srcObject.getVideoTracks()[0];
+  const track = $('scan-video').srcObject && $('scan-video').srcObject.getVideoTracks()[0];
   if(track && torchOn){ try{ track.applyConstraints({ advanced: [{ torch: false }] }); }catch(e){} }
-  if(video.srcObject){ video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
   torchOn = false;
   $('scan-torch-btn').style.display = 'none';
-  zxingReader = null;
+  if(zxingReader){ try{ zxingReader.reset(); }catch(e){} zxingReader = null; }
   $('scan-overlay').style.display = 'none';
 }
 
