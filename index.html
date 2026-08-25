@@ -518,11 +518,12 @@ async function startLiveScan(){
   $('scan-overlay').style.display = 'block';
   $('scan-live-status').textContent = 'Apunta al código de la etiqueta…';
   scanLoopActive = true;
+  let intentos = 0;
 
-  // Si tras unos segundos no se detecta ningún código, avisa y ofrece alternativa
+  // Si tras unos segundos no se detecta ningún código, avisa
   clearTimeout(scanTimeoutId);
   scanTimeoutId = setTimeout(() => {
-    if(scanLoopActive) $('scan-live-status').textContent = 'Sin detectar código — toca abajo si no tiene QR';
+    if(scanLoopActive) $('scan-live-status').textContent = 'Sin detectar código todavía… (intentos: ' + intentos + ')';
   }, 6000);
 
   try{
@@ -534,20 +535,13 @@ async function startLiveScan(){
       ZXing.BarcodeFormat.PDF_417,
       ZXing.BarcodeFormat.EAN_13
     ]);
-    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
     zxingReader = new ZXing.BrowserMultiFormatReader(hints);
 
     await zxingReader.decodeFromConstraints(
-      {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }]
-        }
-      },
+      { video: { facingMode: 'environment' } },
       'scan-video',
       (result, err) => {
+        intentos++;
         if(result && scanLoopActive){
           const text = result.getText();
           stopLiveScan();
@@ -568,7 +562,7 @@ async function startLiveScan(){
     }, 500);
   }catch(err){
     stopLiveScan();
-    showToast('⚠ No se pudo acceder a la cámara — revisa los permisos o busca a mano');
+    alert('Error al abrir la cámara:\n\n' + (err && err.name ? err.name + ': ' : '') + (err && err.message ? err.message : String(err)));
   }
 }
 
